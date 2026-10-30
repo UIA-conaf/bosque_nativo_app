@@ -1,0 +1,536 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Simulador de cupos regionales</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: barra de control fija + cuatro pasos en pestañas; tablas y pistas horizontales por región. Código de colores de la ppt. */
+:root{
+  --bg:#F5F6F2; --panel:#FFFFFF; --ink:#16212E; --mut:#5D6878; --line:#DADFE5; --navy:#14304F; --navy-soft:#E6ECF3;
+  --hist:#1F5FA8; --hist-s:#DCE8F7; --y25:#6A3FA0; --y25-s:#ECE3F6; --banda:#C55A11; --banda-s:#FBE3D0;
+  --resc:#4A5563; --resc-s:#E6E9ED; --cupo:#1B7A3A; --cupo-s:#DFF2E5; --din:#8A5A00; --din-s:#FFF1C7;
+  --conc:#00796B; --conc-s:#DDF1EE; --av:#AD1457; --av-s:#FBE1EC; --ind:#6D4C41; --ind-s:#EFE5DF; --bad:#B3261E; --bad-s:#FDECEA;
+  --f-ui:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif; --f-num:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10161E; --panel:#18212C; --ink:#E6EBF1; --mut:#9AA6B5; --line:#2C3846; --navy:#9CC0EA; --navy-soft:#1E2B3B;
+  --hist:#7FB0EC; --hist-s:#1B2C42; --y25:#C1A2EA; --y25-s:#2A2240; --banda:#F0A469; --banda-s:#3A2717; --resc:#B4BDC9; --resc-s:#262E38;
+  --cupo:#6FD08F; --cupo-s:#16301F; --din:#E8C25E; --din-s:#352A10; --conc:#5FD0C2; --conc-s:#123230; --av:#F28DB5; --av-s:#3A1828;
+  --ind:#D5B3A6; --ind-s:#33241F; --bad:#F2A49E; --bad-s:#3B1C1A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10161E; --panel:#18212C; --ink:#E6EBF1; --mut:#9AA6B5; --line:#2C3846; --navy:#9CC0EA; --navy-soft:#1E2B3B;
+  --hist:#7FB0EC; --hist-s:#1B2C42; --y25:#C1A2EA; --y25-s:#2A2240; --banda:#F0A469; --banda-s:#3A2717; --resc:#B4BDC9; --resc-s:#262E38;
+  --cupo:#6FD08F; --cupo-s:#16301F; --din:#E8C25E; --din-s:#352A10; --conc:#5FD0C2; --conc-s:#123230; --av:#F28DB5; --av-s:#3A1828;
+  --ind:#D5B3A6; --ind-s:#33241F; --bad:#F2A49E; --bad-s:#3B1C1A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{padding-block:28px 14px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+h1{font-size:clamp(28px,4vw,40px);font-weight:800;color:var(--navy);margin:6px 0 4px;text-wrap:balance;letter-spacing:-.01em}
+.sub{color:var(--mut);max-width:70ch;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;padding-block:10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.seg button{font:600 14px var(--f-ui);border:0;background:transparent;color:var(--mut);padding:8px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--navy);color:var(--panel)}
+.ctl{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mut);font-weight:600}
+.ctl input[type=range]{width:140px;accent-color:var(--banda)}
+.ctl input[type=number]{width:92px;font:600 14px var(--f-num);padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink)}
+.pill{font:600 13px var(--f-num);padding:3px 9px;border-radius:999px;background:var(--banda-s);color:var(--banda);min-width:52px;text-align:center}
+.btn{font:600 13px var(--f-ui);border:1px solid var(--line);background:var(--panel);color:var(--navy);padding:7px 12px;border-radius:8px;cursor:pointer}
+.btn:hover,.seg button:hover{filter:brightness(.97)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--hist);outline-offset:2px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:18px 0 8px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi .l{font-size:12px;color:var(--mut);font-weight:600}
+.kpi .v{font:600 22px var(--f-num);margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px;color:var(--mut)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:18px 0 0;border-bottom:1px solid var(--line)}
+.tabs button{font:600 14px var(--f-ui);background:transparent;border:0;border-bottom:3px solid transparent;color:var(--mut);padding:10px 12px;cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--navy);border-bottom-color:var(--navy)}
+.tabs .n{font-family:var(--f-num);margin-right:6px;opacity:.7}
+section.view{padding-block:18px 28px}
+h2{font-size:22px;color:var(--navy);margin:0 0 4px;text-wrap:balance}
+.lead{color:var(--mut);margin:0 0 14px;max-width:80ch}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.grid2{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);text-align:right;padding:8px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.t{font-family:var(--f-ui);text-align:left}
+tr.sel td{background:var(--navy-soft)}
+tr.tot td{font-weight:600;border-top:2px solid var(--line)}
+.c-hist{color:var(--hist)}.c-y25{color:var(--y25)}.c-banda{color:var(--banda)}.c-resc{color:var(--resc)}.c-cupo{color:var(--cupo)}.c-din{color:var(--din)}.c-conc{color:var(--conc)}.c-av{color:var(--av)}.c-ind{color:var(--ind)}
+.chip{display:inline-block;font:600 11.5px var(--f-ui);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.ch-piso{background:var(--banda-s);color:var(--banda)}.ch-tope{background:var(--banda-s);color:var(--banda)}.ch-libre{background:var(--resc-s);color:var(--resc)}.ch-sin{background:var(--line);color:var(--mut)}
+.ch-cupo{background:var(--cupo-s);color:var(--cupo)}.ch-fc{background:var(--din-s);color:var(--din)}.ch-no{background:var(--bad-s);color:var(--bad)}.ch-skip{background:var(--resc-s);color:var(--resc)}
+/* pistas de cupo */
+.tracks{display:flex;flex-direction:column;gap:6px}
+.trow{display:grid;grid-template-columns:120px minmax(0,1fr) 72px;gap:10px;align-items:center;font-size:13px;cursor:pointer;border-radius:8px;padding:2px 4px}
+.trow:hover,.trow.sel{background:var(--navy-soft)}
+.trow .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trow .val{font:600 13px var(--f-num);text-align:right;color:var(--cupo)}
+.track{position:relative;height:22px;border-radius:6px;background:var(--bg)}
+.track .band{position:absolute;top:5px;bottom:5px;background:var(--banda-s);border:1px solid var(--banda);border-radius:4px;opacity:.95}
+.track .mk{position:absolute;top:2px;bottom:2px;width:0;border-left:2px solid}
+.track .mk.base{border-color:var(--hist)} .track .mk.y25{border-color:var(--y25);border-left-style:dotted}
+.track .dot{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--cupo);border:2px solid var(--panel)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--mut);margin:10px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:14px;height:10px;border-radius:3px}
+.formula{font-family:var(--f-num);font-size:14px;background:var(--resc-s);color:var(--ink);border-radius:10px;padding:10px 12px;line-height:1.7}
+.formula b{color:var(--resc)}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+.step{border-radius:12px;padding:12px;border:1px solid var(--line);background:var(--panel)}
+.step .h{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.step .big{font:600 22px var(--f-num);margin:4px 0 2px}
+.step .op{font:13px var(--f-num);color:var(--mut)}
+.s-hist{border-top:4px solid var(--hist)}.s-y25{border-top:4px solid var(--y25)}.s-banda{border-top:4px solid var(--banda)}.s-resc{border-top:4px solid var(--resc)}.s-cupo{border-top:4px solid var(--cupo)}.s-din{border-top:4px solid var(--din)}
+select{font:600 14px var(--f-ui);padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink)}
+.plist{max-height:440px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.plist table th{position:sticky;top:0;background:var(--panel)}
+.note{font-size:12.5px;color:var(--mut);margin-top:10px;max-width:90ch}
+.warn{background:var(--din-s);color:var(--din);font-weight:600;font-size:13px;border-radius:10px;padding:8px 12px;margin-bottom:12px}
+.bars{display:flex;flex-direction:column;gap:5px}
+.brow{display:grid;grid-template-columns:120px minmax(0,1fr) 64px;gap:10px;align-items:center;font-size:13px}
+.brow .b{height:14px;border-radius:4px;background:var(--din)}
+.brow .v{font:600 13px var(--f-num);text-align:right}
+.sliders{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:12px 0}
+.sl label{display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--mut);margin-bottom:4px}
+.sl input{width:100%}
+.sl.c input{accent-color:var(--conc)} .sl.a input{accent-color:var(--av)}
+footer{color:var(--mut);font-size:12.5px;padding-block:8px 32px;border-top:1px solid var(--line)}
+footer p{margin:6px 0;max-width:100ch}
+@media (max-width:560px){.trow,.brow{grid-template-columns:92px minmax(0,1fr) 60px}.ctl input[type=range]{width:110px}}
+@media (prefers-reduced-motion:no-preference){.track .dot,.track .band,.brow .b{transition:all .25s ease}}
+
+.intro{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:14px 0 4px}
+.paso{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px}
+.paso .k{font:700 12px var(--f-ui);letter-spacing:.08em;text-transform:uppercase}
+.paso p{margin:4px 0 0;color:var(--mut)}
+.box{border-radius:14px;padding:14px 16px;border:1px solid var(--line);background:var(--panel)}
+.box h3{margin:0 0 6px;font-size:16px;text-wrap:balance}
+.box p{margin:6px 0;max-width:75ch}
+.box .tag{display:inline-block;font:700 11px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:999px;margin-bottom:6px}
+.simple{border-left:5px solid var(--navy)} .simple .tag{background:var(--navy-soft);color:var(--navy)}
+.porque{background:var(--din-s);border-color:transparent;border-left:5px solid var(--din)} .porque .tag{background:var(--panel);color:var(--din)}
+.cuenta{font-family:var(--f-num);font-size:14px;line-height:1.8;background:var(--bg);border-radius:10px;padding:10px 12px;margin-top:8px;overflow-x:auto}
+.cuenta .r{font-weight:700}
+.boxes{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:14px}
+.big3{font:700 26px var(--f-num)}
+.gl{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px 18px;font-size:13.5px}
+.gl b{color:var(--navy)}
+.more{margin-top:8px}
+</style>
+<header class="top wrap">
+  <div class="eyebrow">CONAF · Fondo de Conservación del Bosque Nativo · Ley 20.283</div>
+  <h1>¿Cómo se reparte el dinero del concurso entre las regiones?</h1>
+  <p class="sub">La preasignación regional explicada paso a paso, con los datos reales del concurso 2025 y el monto 2027. Puedes mover la banda o el presupuesto y ver qué cambia.</p>
+  <div class="intro">
+    <div class="paso"><div class="k c-cupo">1 · Cupo</div><p>Cada región recibe una parte del dinero.</p></div>
+    <div class="paso"><div class="k" style="color:var(--navy)">2 · Fila</div><p>Sus proyectos entran por puntaje, sin saltarse a nadie.</p></div>
+    <div class="paso"><div class="k c-din">3 · Saldos</div><p>Lo que no usa vuelve a un fondo común.</p></div>
+    <div class="paso"><div class="k c-din">4 · Fondo común</div><p>Segunda oportunidad para los que quedaron fuera.</p></div>
+    <div class="paso"><div class="k c-resc">5 · Remanente</div><p>Lo que queda sigue la Ley (art. 30).</p></div>
+    <div class="paso"><div class="k c-ind">2028 · Desempeño</div><p>El cupo sube o baja según lo que se ejecuta.</p></div>
+  </div>
+</header>
+<div class="bar"><div class="wrap">
+  <div class="seg" role="group" aria-label="Concurso">
+    <button id="cc-OI" aria-pressed="true">Otros interesados</button>
+    <button id="cc-PP" aria-pressed="false">Pequeños propietarios</button>
+  </div>
+  <label class="ctl" for="banda">Banda <input id="banda" type="range" min="0" max="30" step="1" value="15"><span class="pill" id="bandaV">±15%</span></label>
+  <label class="ctl" for="pres">Presupuesto 2027 ($ millones) <input id="pres" type="number" min="500" max="15000" step="50" value="3588"></label>
+  <label class="ctl" for="regSel">Región del ejemplo <select id="regSel"></select></label>
+  <button class="btn" id="reset">Volver a la propuesta</button>
+</div></div>
+<main class="wrap">
+  <div class="kpis" id="kpis"></div>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="t-cupos" aria-selected="true"><span class="n">1</span>¿Cuánto le toca a cada región?</button>
+    <button role="tab" id="t-region" aria-selected="false"><span class="n">2</span>La fila de proyectos</button>
+    <button role="tab" id="t-fondo" aria-selected="false"><span class="n">3</span>¿Qué pasa con lo que sobra?</button>
+    <button role="tab" id="t-ajuste" aria-selected="false"><span class="n">4</span>Desde 2028: el desempeño</button>
+  </div>
+
+  <section class="view" id="v-cupos">
+    <h2 id="h-cupos"></h2>
+    <p class="lead">El cupo se arma en cuatro pasos. Cada recuadro explica uno, con la cuenta hecha para la región del ejemplo.</p>
+    <div class="boxes" id="boxCupos"></div>
+    <h3 style="font-size:15px;color:var(--navy);margin:8px 0 6px">Todas las regiones</h3>
+    <div class="grid2">
+      <div class="card">
+        <div class="tracks" id="tracks"></div>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--banda-s);border:1px solid var(--banda)"></i>Banda: entre el piso y el tope</span>
+          <span><i class="sw" style="background:var(--hist)"></i>Lo que tuvo en 2021-2025</span>
+          <span><i class="sw" style="background:var(--y25)"></i>Lo que tuvo en 2025</span>
+          <span><i class="sw" style="background:var(--cupo);border-radius:50%"></i>Su cupo 2027</span>
+        </div>
+      </div>
+      <div class="box porque"><span class="tag">Cómo leer el gráfico</span>
+        <p>Cada fila es una región. La franja naranja es lo que puede recibir este año: no más abajo del piso ni más arriba del tope.</p>
+        <p>La raya azul muestra lo que le correspondería por su historia. Si cae fuera de la franja, el cupo queda en el borde más cercano.</p>
+        <p>Toca una región para usarla como ejemplo.</p></div>
+    </div>
+    <div class="card scroll" style="margin-top:14px"><table id="tCupos"></table></div>
+  </section>
+
+  <section class="view" id="v-region" hidden>
+    <h2 id="h-region"></h2>
+    <div class="boxes" id="boxFila"></div>
+    <div class="plist"><table id="tProj"></table></div>
+  </section>
+
+  <section class="view" id="v-fondo" hidden>
+    <h2>Ningún peso queda sin usar</h2>
+    <div class="boxes" id="boxFondo"></div>
+    <div class="grid2">
+      <div class="card"><h3 style="margin:0 0 10px;font-size:15px;color:var(--din)">Cuánto deja cada región (UTM)</h3><div class="bars" id="bars"></div></div>
+      <div class="card"><h3 style="margin:0 0 10px;font-size:15px;color:var(--din)">Quiénes entran por el fondo común</h3><div class="plist" style="max-height:330px"><table id="tFC"></table></div></div>
+    </div>
+    <div class="card scroll" style="margin-top:14px"><table id="tRes"></table></div>
+  </section>
+
+  <section class="view" id="v-ajuste" hidden>
+    <h2>Desde 2028, el cupo premia a las regiones que ejecutan lo que adjudican</h2>
+    <div class="warn">Ejemplo ilustrativo de la presentación: O'Higgins y Los Ríos tienen valores propios y las demás regiones quedan iguales al promedio del país. Mueve las barras para probar con la región del ejemplo.</div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="sliders" style="margin-top:0">
+        <div class="sl c"><label for="conc"><span>Concreción de <span class="rn"></span></span><span id="concV"></span></label><input id="conc" type="range" min="0" max="50" step="0.1"></div>
+        <div class="sl a"><label for="av"><span>Avance de <span class="rn"></span></span><span id="avV"></span></label><input id="av" type="range" min="0" max="100" step="1"></div>
+      </div>
+      <button class="btn" id="reset28">Restablecer el ejemplo</button>
+    </div>
+    <div class="boxes" id="box28"></div>
+    <div class="card scroll"><table id="t28"></table></div>
+  </section>
+
+  <section class="view" style="padding-top:0">
+    <h2 style="font-size:18px">Palabras clave</h2>
+    <div class="gl card">
+      <div><b>UTM:</b> Unidad Tributaria Mensual. Los montos del concurso se expresan en UTM.</div>
+      <div><b>Cupo:</b> la parte del dinero del concurso reservada para una región.</div>
+      <div><b>Banda:</b> cuánto puede cambiar el cupo de un año a otro (±15% de lo que la región tenía).</div>
+      <div><b>Número común (λ):</b> el multiplicador que hace que los cupos sumen exactamente el 100% del dinero.</div>
+      <div><b>Saldo:</b> lo que una región no alcanza a usar de su cupo.</div>
+      <div><b>Fondo común:</b> la suma de los saldos, que se reparte por puntaje entre todos los que quedaron fuera.</div>
+      <div><b>Remanente:</b> lo que sobra al final; la Ley 20.283 (art. 30) dice qué se hace con él.</div>
+      <div><b>Concreción:</b> de lo que una región adjudicó, qué parte terminó pagada.</div>
+      <div><b>Avance:</b> de lo adjudicado el año anterior, qué parte ya tiene aviso de inicio de faenas (el aviso que el propietario da a CONAF al empezar a ejecutar su plan aprobado).</div>
+      <div><b>Índice y factor:</b> resumen del desempeño de la región y cuánto mueve su cupo.</div>
+    </div>
+  </section>
+</main>
+<footer class="wrap">
+  <p><b>Datos.</b> UTM adjudicadas por región en los concursos 2021-2025 y nómina final del Primer Concurso 2025 (551 proyectos de pequeños propietarios y 255 adjudicados de otros interesados), portal concursolbn.conaf.cl. Presupuesto comprometible 2026: $6.976 millones; 2027: $3.588 millones (Departamento de Bosque Nativo). El monto 2027 en UTM es lo adjudicado en 2025 × (2027 ÷ 2026).</p>
+  <p><b>Reglas.</b> Participaciones redondeadas a dos decimales, como en la presentación. Con igual puntaje va primero el de menor superficie; la nómina final no la trae, así que el único empate que cambia el resultado (Magallanes, otros interesados) se ordenó como en la simulación original. Los no adjudicados de otros interesados en 2025 no tienen puntaje publicado; todos tenían menos de 49,69 puntos y no cambian el resultado con el monto 2027.</p>
+</footer>
+<script>
+const DATA={"regs":["Coquimbo","Valparaíso","Metropolitana","O'Higgins","Maule","Ñuble","Biobío","La Araucanía","Los Ríos","Los Lagos","Aysén","Magallanes"],"hist":{"PP":{"tot":[28961,32356,36928,43471,45415],"reg":[[0,0,0,451,12],[594,834,265,1159,2588],[181,1226,958,313,850],[1596,1457,1683,2576,4058],[2342,2883,6236,4796,4295],[1879,2007,2703,2016,1389],[1322,1707,1202,2743,1574],[4336,2774,4193,5615,6617],[4431,3877,4768,3606,4660],[4699,6996,8189,11217,8502],[6133,8233,6731,8808,10672],[1450,355,0,171,200]]},"OI":{"tot":[85154,79904,68739,60746,58243],"reg":[[0,0,0,0,0],[2561,5719,5241,5954,9631],[694,1131,14,1926,1145],[19010,23972,31848,17421,12298],[19308,12135,9826,12886,5683],[3192,3363,2685,2418,879],[8198,6136,2199,1290,2270],[14486,5331,8824,7741,8779],[7485,12386,3571,6616,7943],[1505,2990,936,2216,1976],[1481,1087,2050,529,4229],[7235,5621,1547,1749,3411]]}},"nom":{"PP":[["005",7,46.4,103.5],["010",7,34.17,160.0],["011",1,64.25,10.11],["013",4,37.47,232.4],["015",9,37.12,860.13],["016",9,40.87,71.88],["019",11,32.0,199.56],["027",7,35.77,105.8],["028",2,54.97,7.55],["029",8,64.07,10.7],["031",8,33.47,24.13],["032",8,34.17,13.6],["033",8,33.47,18.24],["034",8,34.17,14.34],["035",8,41.27,20.38],["036",8,33.47,18.46],["037",8,37.27,23.64],["038",9,49.57,49.23],["039",9,45.57,30.03],["042",9,42.9,172.5],["043",10,44.17,101.78],["044",7,32.1,30.0],["047",9,51.6,63.71],["048",9,44.6,66.01],["049",9,43.6,51.29],["050",9,39.6,62.79],["051",10,36.87,72.45],["052",9,53.8,12.88],["053",9,50.0,25.53],["054",10,46.97,9.94],["055",9,37.6,75.1],["056",10,44.87,69.0],["057",10,44.87,80.5],["062",4,45.57,36.62],["066",9,40.17,138.0],["067",4,60.33,60.32],["068",9,52.9,126.14],["071",9,50.27,25.65],["072",8,36.7,11.41],["075",8,45.0,19.44],["078",7,45.88,79.47],["080",8,55.1,15.64],["081",8,36.7,14.79],["082",8,36.0,29.4],["086",10,37.6,93.37],["087",10,38.9,316.54],["089",10,42.87,62.14],["090",10,31.04,40.05],["091",10,33.23,113.51],["092",7,32.17,170.32],["093",4,51.57,40.69],["097",8,36.7,14.67],["102",8,55.85,68.66],["103",7,42.35,81.77],["105",7,50.35,76.48],["106",8,53.6,53.82],["109",8,57.95,3.01],["112",3,34.3,44.0],["113",7,37.87,82.97],["114",3,42.35,19.5],["115",3,36.92,48.0],["116",3,35.52,92.5],["117",10,37.95,90.0],["118",10,40.9,90.16],["119",10,31.9,99.74],["120",3,33.47,172.5],["123",8,45.0,25.3],["124",4,31.87,57.5],["125",8,44.3,39.45],["126",8,55.0,26.45],["134",9,45.22,63.25],["136",9,40.57,31.8],["137",9,42.87,61.87],["138",9,26.47,21.18],["139",9,59.95,7.48],["140",9,55.82,30.03],["141",9,42.87,65.54],["144",9,50.2,5.75],["145",7,43.72,20.95],["146",8,40.12,83.62],["147",9,52.27,21.02],["148",9,42.87,51.0],["149",9,42.17,103.5],["151",10,32.6,55.05],["153",7,44.3,41.4],["154",7,45.0,29.9],["159",3,39.47,172.5],["166",7,27.87,59.17],["169",7,58.87,57.91],["170",7,30.08,141.0],["171",9,34.87,73.14],["172",1,43.87,87.4],["173",1,45.27,24.15],["174",8,62.32,5.75],["180",9,38.17,152.0],["185",7,40.08,64.65],["190",9,38.87,60.06],["192",9,48.87,72.08],["193",4,35.27,27.03],["197",9,47.16,113.27],["198",10,29.87,60.95],["199",7,49.25,30.0],["201",10,47.57,43.18],["203",10,48.97,10.75],["204",10,31.9,98.44],["205",7,57.92,32.14],["208",7,56.87,83.41],["211",4,40.27,19.55],["213",8,52.3,34.5],["215",8,25.9,318.4],["216",9,52.17,117.73],["217",9,39.12,718.38],["218",9,50.27,26.57],["219",9,52.9,480.52],["223",4,53.2,10.08],["224",10,42.9,193.2],["225",10,23.9,120.0],["227",4,33.17,151.12],["228",10,29.9,264.97],["229",10,33.9,315.19],["230",4,34.87,51.75],["231",10,35.97,75.44],["232",10,40.17,109.98],["233",4,40.27,15.81],["234",4,40.27,15.81],["237",5,60.4,62.05],["249",7,50.52,26.04],["250",7,48.3,42.08],["251",4,60.87,78.63],["252",8,57.97,7.55],["256",10,45.92,48.88],["267",7,30.57,48.9],["268",7,52.12,96.08],["269",8,54.95,6.26],["276",9,50.87,63.25],["277",9,47.57,34.24],["278",9,42.17,116.53],["279",3,45.6,37.26],["280",3,40.9,59.92],["281",3,44.15,51.75],["283",9,48.27,17.25],["288",7,50.57,38.85],["291",4,59.87,33.09],["295",8,44.97,7.55],["296",7,54.27,26.84],["297",3,35.47,138.0],["301",8,44.97,5.33],["302",4,52.62,18.98],["304",7,25.17,120.0],["305",7,41.27,29.88],["308",1,52.8,18.41],["309",9,30.87,65.44],["316",4,35.57,39.56],["317",4,40.27,18.58],["320",7,51.57,12.0],["322",4,33.97,11.5],["327",7,42.0,28.29],["330",6,54.03,519.0],["334",8,54.95,16.3],["335",9,44.87,62.1],["336",8,44.97,2.45],["338",9,44.87,62.1],["341",4,49.2,14.61],["344",4,33.27,25.06],["358",10,45.37,19.91],["360",9,43.6,57.5],["369",7,48.35,52.44],["370",4,46.87,69.95],["371",9,43.57,37.9],["376",5,33.97,8.69],["377",8,44.85,66.2],["383",5,46.6,65.83],["384",10,33.3,48.84],["385",10,45.1,62.33],["388",1,32.24,970.6],["389",8,40.94,23.23],["390",8,48.95,6.94],["391",10,35.44,185.26],["393",8,44.3,40.37],["394",10,40.37,67.28],["397",8,47.0,23.0],["398",4,38.0,28.75],["402",10,34.17,146.17],["405",10,28.6,61.89],["407",10,53.15,238.05],["409",6,45.2,9.85],["410",7,44.97,6.48],["411",4,54.27,24.41],["415",1,61.27,12.18],["416",10,27.87,51.21],["421",10,27.87,81.52],["422",9,30.17,95.44],["423",4,46.87,82.59],["424",10,36.17,120.41],["426",10,36.9,99.95],["427",10,41.6,51.98],["428",10,29.9,136.02],["429",10,29.17,111.25],["430",10,42.3,46.58],["432",3,36.22,78.0],["433",3,37.22,49.0],["435",7,24.57,41.67],["436",7,25.17,108.0],["437",7,40.57,39.77],["438",3,57.95,3.16],["440",4,44.87,61.01],["445",7,22.57,37.9],["455",9,44.74,44.74],["470",10,40.68,2188.32],["472",10,33.6,64.98],["475",8,55.7,7.36],["477",9,45.3,36.04],["478",9,50.17,90.1],["479",4,40.27,17.25],["484",10,34.17,231.2],["485",7,25.17,99.0],["486",7,37.57,30.6],["487",7,40.87,76.0],["490",10,42.17,323.73],["491",9,48.27,28.75],["492",7,32.87,56.0],["493",9,44.87,57.5],["500",9,39.87,56.39],["508",8,63.79,17.83],["510",2,40.07,704.11],["512",8,40.87,60.06],["513",8,38.87,84.09],["514",8,58.97,14.38],["517",8,53.57,39.04],["520",10,37.6,86.25],["521",8,62.85,31.56],["523",6,40.3,42.9],["524",6,32.6,78.16],["526",1,64.25,6.8],["530",4,39.57,184.8],["533",3,60.92,28.75],["534",9,47.17,120.8],["541",4,47.97,10.6],["543",9,36.9,133.98],["547",7,28.17,253.36],["548",8,45.0,28.75],["549",8,55.0,28.75],["550",9,46.27,22.42],["551",8,50.95,13.05],["552",9,48.27,17.2],["556",4,32.87,63.25],["557",4,40.27,16.94],["558",8,29.9,249.31],["559",7,51.07,14.95],["562",8,53.4,121.79],["563",4,33.27,23.12],["564",8,33.67,9.49],["565",7,59.55,32.5],["567",8,39.57,30.94],["568",8,33.87,58.92],["569",8,47.55,32.6],["572",8,45.0,16.91],["573",7,44.38,71.39],["574",8,43.6,65.55],["575",8,43.52,238.88],["577",8,43.6,63.25],["579",7,50.27,23.0],["585",3,35.47,115.0],["586",3,42.87,30.71],["590",3,36.42,445.1],["591",3,35.47,172.5],["592",3,37.47,172.5],["595",3,37.47,230.0],["596",3,49.72,113.75],["597",3,47.72,91.0],["598",3,37.47,115.0],["605",7,60.57,37.75],["613",4,43.57,17.25],["619",5,45.27,22.65],["622",8,52.52,133.57],["623",4,37.97,13.8],["624",7,44.97,35.97],["625",1,50.95,1.95],["626",4,28.47,199.0],["627",9,36.9,128.69],["628",4,40.27,15.1],["629",7,61.67,35.99],["630",10,36.17,128.11],["631",9,38.87,57.66],["634",9,46.27,27.63],["640",10,31.9,121.54],["642",9,41.6,50.03],["644",10,34.87,57.5],["645",7,21.17,221.45],["648",1,43.57,16.1],["649",1,44.27,14.95],["650",4,52.82,240.0],["660",7,73.37,5.69],["665",5,46.0,6.07],["667",7,45.17,120.8],["675",9,30.87,81.77],["677",7,36.17,92.47],["681",4,43.57,22.06],["682",8,55.27,249.76],["687",6,60.57,27.11],["691",10,36.87,71.88],["693",8,50.75,23.0],["694",7,38.4,254.4],["695",8,45.95,13.8],["696",10,40.55,34.5],["697",10,39.57,42.55],["698",4,32.57,34.5],["699",10,38.17,126.5],["701",9,42.17,94.88],["702",9,54.27,29.73],["703",9,34.87,70.5],["708",9,31.87,67.14],["710",9,50.17,145.36],["711",9,42.87,60.95],["712",9,49.57,34.27],["714",9,48.17,213.83],["716",9,63.57,37.84],["719",5,43.57,49.58],["721",1,44.17,830.5],["727",4,38.27,22.58],["731",8,42.3,34.16],["732",7,54.97,11.32],["735",8,56.2,8.17],["736",8,45.8,32.01],["739",2,27.52,138.0],["746",4,34.57,46.0],["747",4,34.57,46.0],["748",4,34.57,46.0],["749",4,34.57,46.0],["750",8,40.3,30.36],["751",6,48.35,15.4],["752",6,27.9,163.0],["753",6,35.6,75.9],["757",5,30.57,40.25],["758",7,46.87,79.12],["760",10,44.3,36.57],["762",10,38.9,117.76],["763",8,36.7,11.0],["764",10,41.7,10.1],["765",10,42.3,32.89],["766",8,43.0,26.8],["768",7,54.8,33.04],["779",9,40.87,60.06],["780",9,50.17,222.24],["781",9,42.17,130.94],["783",10,24.57,35.77],["784",10,42.62,28.75],["786",9,46.17,360.39],["788",4,31.87,57.5],["789",4,55.32,13.8],["790",8,51.6,71.76],["791",8,37.6,68.31],["792",4,40.27,21.85],["793",0,74.25,11.5],["794",7,50.97,6.8],["795",8,41.6,64.36],["801",8,37.7,61.76],["805",8,70.92,19.29],["807",8,46.0,16.3],["808",8,54.4,36.7],["813",8,35.6,59.0],["814",8,55.1,25.88],["817",5,30.87,86.25],["821",8,44.27,36.4],["823",8,41.25,111.18],["826",9,53.57,42.05],["827",4,38.97,9.79],["828",10,47.25,29.9],["831",4,49.2,11.18],["833",3,54.97,7.55],["834",9,50.65,34.44],["835",3,54.97,7.55],["836",9,44.87,71.76],["837",6,44.87,61.43],["838",7,58.17,142.4],["839",8,44.3,43.59],["840",8,42.3,37.72],["843",8,39.6,60.84],["845",7,46.9,122.26],["851",7,35.57,50.0],["854",7,59.5,28.75],["865",8,41.0,26.37],["866",8,40.97,6.1],["870",8,25.97,73.84],["874",9,48.57,45.12],["877",6,42.5,23.47],["878",4,28.57,46.0],["879",4,33.57,45.16],["880",6,34.14,67.49],["886",8,38.27,15.62],["892",8,43.0,15.76],["904",7,32.75,69.0],["905",1,43.57,20.7],["906",1,37.57,301.3],["911",3,33.26,191.04],["912",8,28.7,9.07],["915",8,63.1,16.27],["917",8,66.67,6.22],["928",5,44.27,20.7],["929",8,51.57,31.63],["932",8,50.27,20.13],["933",7,39.67,50.0],["934",8,38.3,41.98],["937",7,54.27,24.41],["939",7,54.27,20.34],["943",8,65.03,25.88],["946",4,42.57,17.25],["947",4,41.17,57.5],["948",4,38.17,57.5],["950",7,42.37,30.0],["952",10,35.75,388.8],["954",5,46.27,16.26],["955",8,38.0,19.93],["956",8,31.27,24.29],["960",5,39.3,45.89],["961",8,52.0,19.09],["975",4,33.17,115.0],["980",6,42.3,40.04],["981",6,44.3,57.33],["984",4,67.95,5.44],["987",6,62.0,10.65],["988",4,67.95,9.04],["989",6,29.87,56.89],["992",6,46.97,58.65],["994",6,38.97,11.5],["995",8,52.35,16.7],["996",5,33.87,76.48],["997",8,47.6,86.71],["998",4,29.87,89.7],["999",8,45.0,26.45],["1001",4,40.27,17.25],["1004",8,50.87,82.28],["1011",8,47.6,67.39],["1012",1,38.45,170.2],["1013",8,55.0,28.23],["1028",4,29.17,113.85],["1029",4,48.87,81.37],["1031",7,31.12,507.28],["1036",4,34.57,49.45],["1045",3,37.39,753.0],["1052",3,44.5,39.84],["1054",4,27.17,192.85],["1055",5,43.21,135.28],["1056",10,38.9,272.0],["1057",3,43.8,66.4],["1059",7,33.97,13.55],["1060",7,40.37,22.0],["1062",10,44.9,120.12],["1063",9,52.17,122.53],["1067",3,41.52,129.15],["1068",7,36.57,110.0],["1070",4,38.27,23.0],["1074",9,42.17,178.9],["1077",3,33.47,121.9],["1084",10,49.5,244.5],["1088",10,41.22,54.03],["1090",9,48.17,151.36],["1094",7,51.5,29.0],["1099",4,49.2,11.87],["1102",6,48.9,46.51],["1106",3,44.5,30.22],["1107",4,31.87,68.5],["1108",3,51.8,66.4],["1109",6,38.3,33.35],["1110",10,37.57,41.4],["1111",7,41.97,10.16],["1112",3,33.1,70.1],["1114",10,35.85,62.1],["1116",10,46.87,74.75],["1117",9,38.87,72.0],["1120",5,48.87,69.17],["1122",9,39.57,49.25],["1123",9,39.57,39.0],["1125",7,25.28,352.11],["1126",9,55.25,17.02],["1127",5,48.27,18.31],["1128",7,46.62,26.47],["1131",7,24.16,234.93],["1132",4,31.84,81.95],["1133",7,46.97,14.59],["1134",7,43.27,20.0],["1139",7,40.97,14.12],["1141",7,49.57,37.0],["1142",1,55.4,72.21],["1144",10,43.31,297.73],["1148",1,51.57,16.1],["1150",1,40.27,10.97],["1155",1,38.27,3.45],["1156",10,47.57,45.92],["1157",7,27.97,7.55],["1158",7,27.97,6.04],["1159",7,56.97,5.18],["1164",7,59.25,25.56],["1165",7,49.32,5.18],["1167",8,50.55,35.0],["1169",7,55.32,15.4],["1170",9,41.6,61.07],["1174",8,22.57,39.8],["1175",7,65.5,20.92],["1179",10,41.56,21.09],["1192",6,57.95,6.33],["1195",4,27.17,299.25],["1196",5,34.87,54.29],["1199",6,57.95,6.33],["1204",9,50.0,24.39],["1205",10,41.22,53.03],["1208",8,52.87,61.03],["1209",7,57.95,2.27],["1211",8,48.87,60.06],["1213",10,41.22,54.03],["1218",7,37.57,33.0],["1220",7,27.97,14.16],["1221",9,37.3,31.59],["1223",7,38.35,28.0],["1225",7,40.2,13.26],["1226",7,69.97,34.5],["1227",7,43.57,46.0],["1229",7,36.87,69.0],["1230",10,42.62,28.75],["1231",9,47.67,47.73],["1232",10,37.43,980.64],["1233",5,31.57,33.35],["1234",7,30.47,354.0],["1236",7,29.17,172.5],["1242",5,40.97,7.98],["1246",9,40.3,49.45],["1249",6,38.87,60.15],["1250",5,52.55,49.64],["1253",5,36.17,130.9],["1255",5,49.55,42.37],["1259",6,40.97,6.9],["1262",5,31.27,29.85],["1263",5,54.55,48.1],["1264",8,44.9,109.94],["1266",5,38.87,65.45],["1267",6,36.17,96.03],["1268",8,40.3,37.15],["1269",5,57.95,15.59],["1270",5,28.57,46.77],["1271",5,27.87,69.65],["1272",8,54.3,39.22],["1274",5,49.55,36.24],["1276",5,51.55,35.66],["1279",9,42.85,70.63],["1281",9,48.25,19.42],["1282",7,37.27,23.0],["1284",3,27.52,94.3],["1287",4,31.62,509.0],["1288",8,64.95,16.62],["1289",9,40.15,173.67],["1290",7,48.97,15.0]],"OI":[["003",7,69.73,222.79],["004",7,62.08,137.48],["008",7,64.08,226.0],["009",4,60.58,42.8],["014",7,49.82,24.0],["021",11,62.33,38.88],["023",7,62.08,180.0],["024",7,58.08,180.0],["025",7,61.58,100.0],["026",7,64.08,53.0],["045",7,66.48,100.0],["046",7,68.48,50.0],["058",11,58.73,112.39],["059",11,62.48,105.95],["060",11,63.98,68.32],["061",4,62.08,197.09],["063",4,59.58,46.26],["064",11,62.48,72.05],["065",11,58.73,276.24],["069",7,62.08,131.08],["070",7,64.08,154.4],["073",8,58.33,18.61],["074",7,62.08,171.75],["076",7,58.08,109.0],["077",7,55.07,117.5],["085",8,62.08,25.4],["088",7,62.08,93.61],["094",8,58.08,47.4],["095",8,58.08,52.47],["096",8,76.73,224.5],["104",8,62.08,29.07],["122",4,67.44,1315.78],["127",9,60.83,30.5],["128",3,76.04,361.59],["129",3,69.92,825.96],["130",9,60.83,12.5],["131",3,49.98,280.0],["142",7,68.6,450.0],["143",7,62.36,91.04],["152",7,69.73,193.99],["155",3,53.73,61.2],["157",3,61.52,446.0],["160",1,55.95,435.6],["161",1,53.95,427.13],["162",1,62.08,267.41],["163",1,62.08,298.27],["164",1,58.08,382.97],["167",8,62.08,56.01],["168",1,63.44,1108.8],["177",9,62.08,250.0],["178",9,60.83,80.0],["179",9,60.83,16.0],["181",4,69.64,135.0],["182",4,59.58,96.0],["183",4,59.58,68.0],["200",7,65.73,47.0],["202",7,66.48,100.0],["241",9,56.83,214.23],["242",6,50.57,3.27],["245",9,61.23,67.66],["246",9,61.23,96.77],["248",2,67.29,220.32],["253",6,64.08,139.58],["270",11,69.61,269.94],["286",8,73.73,159.94],["293",11,61.98,151.52],["299",3,51.98,150.0],["310",7,66.48,40.0],["311",7,68.48,22.0],["318",7,68.48,22.0],["319",7,59.73,100.0],["323",7,49.92,81.38],["324",1,69.64,251.32],["325",7,58.08,256.06],["326",7,70.08,28.36],["329",7,62.08,53.44],["331",7,69.27,1233.78],["333",7,49.69,399.25],["348",6,62.08,29.0],["351",6,74.73,17.85],["362",8,58.08,66.0],["364",3,63.73,109.79],["367",8,55.6,546.52],["368",8,67.29,142.2],["372",5,58.08,131.1],["373",5,64.08,150.0],["375",5,62.08,108.4],["379",10,60.68,89.0],["380",8,73.08,92.8],["381",8,62.08,17.0],["386",5,62.08,27.3],["387",5,62.08,48.2],["396",8,73.08,65.89],["404",10,64.08,40.0],["408",6,53.42,42.54],["412",3,59.6,1038.73],["413",6,74.48,82.55],["414",11,55.45,453.29],["419",1,50.25,501.0],["431",1,55.48,1363.49],["439",4,57.32,11.73],["442",3,50.25,930.24],["443",3,50.25,931.6],["446",1,53.48,1242.54],["448",1,51.48,964.06],["449",1,52.08,2095.68],["450",11,54.33,41.26],["457",10,58.33,223.74],["458",8,70.98,270.0],["459",7,63.73,263.0],["460",8,67.02,368.7],["461",7,73.48,484.01],["462",8,71.58,637.12],["463",10,57.95,502.64],["464",7,63.73,120.7],["465",10,57.48,801.55],["466",10,62.08,150.78],["468",10,57.95,406.85],["469",8,60.88,174.36],["471",10,59.51,103.57],["476",8,81.65,693.92],["496",7,50.57,23.53],["498",7,50.57,4.41],["501",8,75.35,689.35],["502",10,55.48,811.23],["511",10,57.95,607.55],["518",10,62.08,55.34],["528",3,49.98,86.0],["529",6,76.73,27.6],["546",8,60.08,198.52],["571",8,73.08,57.29],["576",7,55.6,784.28],["580",7,77.48,202.64],["583",7,57.07,33.6],["594",7,59.73,441.35],["604",3,57.95,557.32],["637",10,63.83,41.7],["653",3,62.08,346.06],["654",5,61.83,59.79],["655",5,58.08,124.5],["658",5,60.33,12.86],["662",5,69.64,41.58],["666",5,64.08,7.2],["678",7,53.12,42.9],["679",7,69.33,59.34],["684",10,77.48,179.8],["686",7,56.17,11.68],["688",7,58.33,34.93],["689",7,66.48,15.23],["692",11,54.33,175.46],["704",10,60.71,173.91],["713",7,62.48,100.0],["724",6,62.08,99.9],["730",8,68.48,24.97],["740",6,76.73,60.54],["741",6,58.08,307.3],["742",6,58.08,299.7],["743",6,69.64,50.7],["744",6,69.64,139.39],["745",6,62.08,15.0],["767",8,62.08,44.6],["769",3,49.98,354.0],["770",3,49.98,337.48],["774",3,52.38,340.0],["799",8,58.08,31.1],["804",4,55.48,1494.94],["810",3,55.48,1029.32],["811",3,62.08,408.52],["815",3,58.08,325.68],["816",3,58.08,174.64],["818",9,60.83,70.0],["819",9,60.83,28.0],["842",4,64.48,156.0],["847",4,60.08,130.79],["848",8,58.08,117.0],["852",1,58.13,9.03],["853",8,62.08,118.0],["856",4,51.98,375.37],["861",8,58.88,84.01],["876",4,55.73,39.2],["881",3,49.98,283.2],["908",1,49.98,94.09],["910",8,64.08,109.24],["916",4,52.86,238.4],["919",4,49.98,300.0],["920",3,49.98,401.75],["927",7,49.82,65.12],["940",7,52.57,32.0],["941",7,68.48,65.0],["953",1,65.38,40.22],["957",8,62.08,22.0],["963",8,62.73,47.0],["971",8,58.08,64.45],["977",5,62.08,135.0],["978",6,69.64,30.88],["982",6,73.39,125.8],["983",8,52.42,52.55],["1000",5,50.57,33.15],["1006",4,50.98,145.2],["1007",6,75.04,10.08],["1009",6,76.04,15.0],["1010",6,57.17,67.14],["1016",6,71.64,36.6],["1018",4,54.11,109.8],["1019",6,62.08,11.56],["1020",6,69.64,6.6],["1022",1,53.73,38.52],["1024",10,62.48,41.5],["1025",1,53.73,85.27],["1030",4,55.32,45.57],["1034",4,51.32,293.0],["1040",3,49.78,1358.0],["1041",7,57.95,464.9],["1051",4,49.98,148.8],["1065",8,53.82,169.4],["1072",3,62.08,143.96],["1076",8,51.13,1285.18],["1085",7,59.82,12.0],["1086",2,54.38,231.2],["1087",7,58.59,17.24],["1091",8,53.95,797.94],["1093",2,50.38,462.0],["1100",7,64.94,102.32],["1101",2,54.38,231.0],["1105",3,60.63,338.2],["1121",8,57.82,48.0],["1130",8,73.73,294.22],["1136",7,62.08,190.25],["1147",1,55.73,25.7],["1171",6,65.73,170.0],["1176",6,59.73,102.18],["1177",6,65.73,29.12],["1178",6,63.73,93.6],["1180",6,61.98,9.84],["1181",6,65.73,8.16],["1183",6,63.73,5.6],["1184",6,59.73,63.43],["1185",6,61.73,38.56],["1187",6,63.73,35.36],["1189",6,59.73,72.08],["1190",6,63.73,23.2],["1197",9,55.48,813.83],["1201",3,61.38,105.0],["1216",11,58.08,406.48],["1217",11,59.08,101.0],["1219",11,53.95,605.88],["1222",11,59.73,457.74],["1224",11,58.08,74.24],["1238",7,54.17,40.0],["1239",4,51.98,272.02],["1244",9,58.08,296.27],["1254",4,49.98,21.0],["1257",3,58.13,355.88],["1275",3,60.13,123.8],["1285",3,49.98,94.4]]}};
+// ---- núcleo de cálculo (mismas reglas que la matriz Excel) ----
+const PRES26 = 6976;
+const TIE = { '1216': 1, '1224': 2 }; // empate en Magallanes (OI, 58,08 pts): orden de la simulación original
+const r2 = x => Math.round(x * 100 + (x >= 0 ? 1e-9 : -1e-9)) / 100;   // ROUND(x,2) de Excel
+const sum = a => a.reduce((s, v) => s + v, 0);
+
+function solve(b, p, t) {
+  const f = m => sum(b.map((bi, i) => Math.min(Math.max(m * bi, p[i]), t[i])));
+  let lo = 0, hi = Math.max(...b.map((bi, i) => (bi > 0 ? t[i] / bi : 0))) + 1;
+  for (let k = 0; k < 60; k++) { const m = (lo + hi) / 2; if (f(m) < 1) lo = m; else hi = m; }
+  const m = (lo + hi) / 2;
+  const fixed = b.map((bi, i) => m * bi <= p[i] || m * bi >= t[i]);
+  const sf = sum(b.map((bi, i) => (fixed[i] ? Math.min(Math.max(m * bi, p[i]), t[i]) : 0)));
+  const sb = sum(b.map((bi, i) => (fixed[i] ? 0 : bi)));
+  const lam = sb > 0 ? (1 - sf) / sb : m;
+  const v = b.map((bi, i) => Math.min(Math.max(lam * bi, p[i]), t[i]));
+  const estado = b.map((bi, i) => (t[i] === 0 ? 'sin' : lam * bi < p[i] - 1e-12 ? 'piso' : lam * bi > t[i] + 1e-12 ? 'tope' : 'libre'));
+  return { lam, v, sf, sb, estado, f };
+}
+
+function montos(pres27) {
+  const t25 = { PP: DATA.hist.PP.tot[4], OI: DATA.hist.OI.tot[4] };
+  const fac = pres27 / PRES26;
+  return {
+    fac,
+    utm: { PP: t25.PP * fac, OI: t25.OI * fac },
+    mm: { PP: pres27 * t25.PP / (t25.PP + t25.OI), OI: pres27 * t25.OI / (t25.PP + t25.OI) },
+  };
+}
+
+function cupos27(cc, banda) {
+  const H = DATA.hist[cc];
+  const TOT = sum(H.tot), T25 = H.tot[4];
+  const adj = H.reg.map(a => sum(a)), y25 = H.reg.map(a => a[4]);
+  const base = adj.map(a => r2(a / TOT * 100) / 100);
+  const part = y25.map(a => r2(a / T25 * 100) / 100);
+  const piso = part.map(s => s * (1 - banda)), tope = part.map(s => s * (1 + banda));
+  const S = solve(base, piso, tope);
+  return { adj, y25, TOT, T25, base, part, piso, tope, ...S };
+}
+
+function asignar(cc, cupoUTM) {
+  const N = DATA.nom[cc];
+  const key = i => { const x = N[i]; return [-x[2], TIE[x[0]] || 0, x[3], i]; };
+  const cmp = (a, b) => { const ka = key(a), kb = key(b); for (let j = 0; j < 4; j++) if (ka[j] !== kb[j]) return ka[j] - kb[j]; return 0; };
+  const order = N.map((_, i) => i).sort(cmp);
+  const R = DATA.regs.length;
+  const res = N.map(() => ({ st: 'no', acc: null, accFC: null, ordReg: null }));
+  const reg = Array.from({ length: R }, () => ({ post: 0, dem: 0, n: 0, utm: 0, nFC: 0, utmFC: 0, stop: null, minPts: null, lista: [] }));
+  N.forEach(x => { reg[x[1]].post++; reg[x[1]].dem += x[3]; });
+  const stopped = new Array(R).fill(false), acc = new Array(R).fill(0), cnt = new Array(R).fill(0);
+  for (const i of order) {
+    const x = N[i], g = x[1];
+    cnt[g]++; res[i].ordReg = cnt[g];
+    reg[g].lista.push(i);
+    if (stopped[g]) continue;
+    if (acc[g] + x[3] <= cupoUTM[g] + 1e-6) { acc[g] += x[3]; res[i].st = 'cupo'; res[i].acc = acc[g]; reg[g].n++; reg[g].utm += x[3]; reg[g].minPts = x[2]; }
+    else { stopped[g] = true; reg[g].stop = i; res[i].acc = acc[g] + x[3]; }
+  }
+  const pool = sum(cupoUTM) - sum(reg.map(r => r.utm));
+  let accFC = 0, fcStop = null; const fc = [];
+  for (const i of order) {
+    if (res[i].st === 'cupo') continue;
+    if (fcStop !== null) continue;
+    const x = N[i];
+    if (accFC + x[3] <= pool + 1e-6) { accFC += x[3]; res[i].st = 'fc'; res[i].accFC = accFC; fc.push(i); reg[x[1]].nFC++; reg[x[1]].utmFC += x[3]; }
+    else fcStop = i;
+  }
+  // casos que podrían reclamar: no adjudicados con más puntaje que el último adjudicado con cupo de otra región
+  let reclamos = 0, brecha = 0;
+  N.forEach((x, i) => {
+    if (res[i].st !== 'no') return;
+    let mn = Infinity;
+    reg.forEach((r, g) => { if (g !== x[1] && r.n > 0 && r.minPts < mn) mn = r.minPts; });
+    if (mn < Infinity && x[2] > mn) { reclamos++; brecha = Math.max(brecha, x[2] - mn); }
+  });
+  return { N, res, reg, order, pool, usado: accFC, rem: pool - accFC, fc, fcStop, reclamos, brecha };
+}
+
+function cupos28(c27pct, conc, av, banda, paisC = 0.202, paisA = 0.50, wc = 0.5, a = 0.5) {
+  const c27 = c27pct.map(c => r2(c * 100) / 100);
+  const rc = conc.map(c => (c == null ? 1 : r2(c / paisC)));
+  const ra = av.map(c => (c == null ? 1 : r2(c / paisA)));
+  const ind = rc.map((c, i) => wc * c + (1 - wc) * ra[i]);
+  const fac = ind.map(x => a + (1 - a) * x);
+  const base = c27.map((c, i) => c * fac[i]);
+  const piso = c27.map(c => c * (1 - banda)), tope = c27.map(c => c * (1 + banda));
+  const S = solve(base, piso, tope);
+  return { c27, rc, ra, ind, fac, base, piso, tope, ...S };
+}
+// ---- interfaz para no expertos ----
+const $ = id => document.getElementById(id);
+const REGS = DATA.regs;
+const fmt = (v, d = 0) => (v == null || isNaN(v) ? '—' : v.toLocaleString('es-CL', { minimumFractionDigits: d, maximumFractionDigits: d }));
+const p2 = v => fmt(r2(v * 100), 2);           // porcentaje con dos decimales, sin el signo
+const pc = v => p2(v) + '%';
+const CNAME = { PP: 'pequeños propietarios', OI: 'otros interesados' };
+const EST = { piso: ['Sube al piso', 'ch-piso'], tope: ['Baja al tope', 'ch-tope'], libre: ['Dentro de su banda', 'ch-libre'], sin: ['Sin cupo', 'ch-sin'] };
+const DEF = { cc: 'OI', banda: 0.15, pres: 3588, reg: 'Maule' };
+const ex28 = () => {
+  const c = REGS.map(r => (r === "O'Higgins" ? 0.327 : r === 'Los Ríos' ? 0.102 : null));
+  const a = REGS.map(r => (r === "O'Higgins" ? 0.6 : r === 'Los Ríos' ? 0.4 : null));
+  return { PP: { conc: [...c], av: [...a] }, OI: { conc: [...c], av: [...a] } };
+};
+const S = { ...DEF, tab: 'cupos', d28: ex28() };
+let calc;
+const box = (kind, tag, title, html) => `<div class="box ${kind}"><span class="tag">${tag}</span><h3>${title}</h3>${html}</div>`;
+const cta = lines => `<div class="cuenta">${lines.join('<br>')}</div>`;
+const v = (cls, t) => `<span class="${cls} r">${t}</span>`;
+
+function compute() {
+  const M = montos(S.pres);
+  const C = cupos27(S.cc, S.banda);
+  const cupoUTM = C.v.map(x => x * M.utm[S.cc]);
+  const A = asignar(S.cc, cupoUTM);
+  const D = cupos28(C.v, S.d28[S.cc].conc, S.d28[S.cc].av, S.banda);
+  calc = { M, C, cupoUTM, A, D };
+}
+const shown = () => REGS.map((r, i) => i).filter(i => calc.C.adj[i] > 0);
+const gi = () => REGS.indexOf(S.reg);
+
+function kpis() {
+  const { M, C, A } = calc;
+  const nC = A.reg.reduce((s, r) => s + r.n, 0);
+  $('kpis').innerHTML = [
+    ['Dinero del concurso 2027', fmt(M.utm[S.cc]) + ' UTM', '≈ $' + fmt(M.mm[S.cc]) + ' millones · ' + CNAME[S.cc], 'c-din'],
+    ['Número común', fmt(C.lam, 3), 'para que los cupos sumen 100%', 'c-resc'],
+    ['Proyectos que entran', fmt(nC + A.fc.length), nC + ' con el cupo de su región · ' + A.fc.length + ' por el fondo común', ''],
+    ['Fondo común', fmt(A.pool) + ' UTM', 'lo que juntan los saldos de las regiones', 'c-din'],
+    ['Remanente', fmt(A.rem) + ' UTM', 'va al art. 30 de la Ley', 'c-resc'],
+  ].map(([l, val, s, c]) => `<div class="kpi"><div class="l">${l}</div><div class="v ${c}">${val}</div><div class="s">${s}</div></div>`).join('');
+}
+
+// ---------- 1 · cupos ----------
+function viewCupos() {
+  const { C, cupoUTM, M } = calc, g = gi(), R = REGS[g];
+  $('h-cupos').textContent = `El ejemplo: ${R}, concurso de ${CNAME[S.cc]}`;
+  const bnd = fmt(S.banda * 100);
+  const qued = { tope: `se pasa de su tope → queda en el tope: ${v('c-cupo', pc(C.v[g]))}`, piso: `queda bajo su piso → sube al piso: ${v('c-cupo', pc(C.v[g]))}`,
+    libre: `cae dentro de su banda → ése es su cupo: ${v('c-cupo', pc(C.v[g]))}`, sin: `no tuvo adjudicación en 2025 → cupo 0; sus proyectos compiten en el fondo común` }[C.estado[g]];
+  const idx = shown(), fixed = idx.filter(i => C.estado[i] !== 'libre'), free = idx.filter(i => C.estado[i] === 'libre');
+  $('boxCupos').innerHTML =
+    box('simple', 'Paso 1', 'La base: lo que la región adjudicó en cinco años',
+      `<p>Se suma lo que se le adjudicó a la región en los concursos 2021 a 2025 y se compara con lo adjudicado en todo el país.</p>` +
+      cta([`Adjudicado a ${R}: ${v('c-hist', fmt(C.adj[g]) + ' UTM')}`, `Adjudicado en el país: ${fmt(C.TOT)} UTM`, `${fmt(C.adj[g])} ÷ ${fmt(C.TOT)} = ${v('c-hist', pc(C.base[g]))}`]) +
+      `<p class="note">Cinco años, para que un año raro no defina todo.</p>`) +
+    box('simple', 'Paso 2', 'La banda: el cupo no puede cambiar de golpe',
+      `<p>El cupo sólo puede moverse ±${bnd}% de lo que la región tuvo en el último concurso. Es ${bnd}% de su propia participación, no ${bnd} puntos.</p>` +
+      cta([`En 2025 tuvo: ${v('c-y25', pc(C.part[g]))}`, `${bnd}% de ${p2(C.part[g])} = ${fmt(C.part[g] * S.banda * 100, 2)}`,
+        `Piso: ${p2(C.part[g])} − ${fmt(C.part[g] * S.banda * 100, 2)} = ${v('c-banda', pc(C.piso[g]))}`, `Tope: ${p2(C.part[g])} + ${fmt(C.part[g] * S.banda * 100, 2)} = ${v('c-banda', pc(C.tope[g]))}`])) +
+    box('simple', 'Paso 3', 'El reescalado: que se reparta todo el dinero',
+      `<p>Al bajar a unas regiones a su tope y subir a otras a su piso, la suma ya no da 100%: da ${v('c-resc', pc(C.f(1)))}. Para repartirlo todo, la base de <b>todas</b> las regiones se multiplica por un mismo número y se vuelve a aplicar la banda.</p>` +
+      cta([`Número común: ${v('c-resc', fmt(C.lam, 3))}`, `${R}: ${p2(C.base[g])} × ${fmt(C.lam, 3)} = ${pc(C.lam * C.base[g])}`, qued])) +
+    box('porque', '¿De dónde sale?', `¿Cómo se encuentra el ${fmt(C.lam, 3)}?`,
+      `<p>Se prueban números hasta que la suma da 100%. Se comprueba con una cuenta simple:</p>` +
+      cta([`${fixed.length} regiones quedan fijas en su piso o tope: suman ${pc(C.sf)}`, `Para las otras ${free.length} quedan: 100 − ${fmt(C.sf * 100, 2)} = ${fmt(100 - C.sf * 100, 2)}%`,
+        `Sus bases suman: ${pc(C.sb)}`, `${fmt(100 - C.sf * 100, 2)} ÷ ${fmt(C.sb * 100, 2)} = ${v('c-resc', fmt(C.lam, 3))}`]) +
+      `<p class="note">Es el mismo número para todas: ninguna región es favorecida.</p>`) +
+    box('simple', 'Paso 4', 'De porcentaje a dinero',
+      `<p>El cupo en porcentaje se multiplica por el dinero del concurso.</p>` +
+      cta([`${pc(C.v[g])} × ${fmt(M.utm[S.cc])} UTM = ${v('c-din', fmt(cupoUTM[g]) + ' UTM')}`, `En pesos: ≈ ${v('c-din', '$' + fmt(C.v[g] * M.mm[S.cc]) + ' millones')}`]));
+  const mx = Math.max(...idx.map(i => Math.max(C.base[i], C.tope[i], C.v[i]))) * 1.08;
+  const x = q => (100 * q / mx).toFixed(2) + '%';
+  $('tracks').innerHTML = idx.map(i => `
+    <div class="trow ${i === g ? 'sel' : ''}" data-r="${REGS[i]}" title="Usar ${REGS[i]} como ejemplo">
+      <div class="nm">${REGS[i]}</div>
+      <div class="track"><div class="band" style="left:${x(C.piso[i])};width:${(100 * (C.tope[i] - C.piso[i]) / mx).toFixed(2)}%"></div>
+        <div class="mk y25" style="left:${x(C.part[i])}"></div><div class="mk base" style="left:${x(C.base[i])}"></div><div class="dot" style="left:${x(C.v[i])}"></div></div>
+      <div class="val">${pc(C.v[i])}</div></div>`).join('');
+  document.querySelectorAll('.trow').forEach(el => el.onclick = () => { S.reg = el.dataset.r; render(); });
+  let h = `<thead><tr><th>Región</th><th class="c-hist">Base 2021-2025</th><th class="c-y25">2025</th><th class="c-banda">Banda (piso – tope)</th><th class="c-cupo">Cupo 2027</th><th>Qué pasó</th><th class="c-din">UTM</th><th class="c-din">$ millones</th></tr></thead><tbody>`;
+  idx.forEach(i => { h += `<tr class="${i === g ? 'sel' : ''}"><td class="t">${REGS[i]}</td><td class="c-hist">${pc(C.base[i])}</td><td class="c-y25">${pc(C.part[i])}</td><td class="c-banda">${p2(C.piso[i])} – ${p2(C.tope[i])}</td><td class="c-cupo"><b>${pc(C.v[i])}</b></td><td class="t"><span class="chip ${EST[C.estado[i]][1]}">${EST[C.estado[i]][0]}</span></td><td class="c-din">${fmt(cupoUTM[i])}</td><td class="c-din">${fmt(C.v[i] * M.mm[S.cc])}</td></tr>`; });
+  $('tCupos').innerHTML = h + `<tr class="tot"><td class="t">País</td><td></td><td></td><td></td><td class="c-cupo">100,00%</td><td></td><td class="c-din">${fmt(M.utm[S.cc])}</td><td class="c-din">${fmt(M.mm[S.cc])}</td></tr></tbody>`;
+}
+
+// ---------- 2 · fila ----------
+function viewRegion() {
+  const { cupoUTM, A } = calc, g = gi(), R = REGS[g], r = A.reg[g];
+  $('h-region').textContent = `La fila de proyectos de ${R}`;
+  const stop = r.stop != null ? A.N[r.stop] : null, saldo = cupoUTM[g] - r.utm;
+  $('boxFila').innerHTML =
+    box('simple', 'La regla', 'Entran por puntaje mientras quepan completos',
+      `<p>Los proyectos de la región se ordenan de mayor a menor puntaje. Entran uno a uno mientras quepan completos en lo que queda del cupo. El primero que no cabe detiene la fila: los que vienen después no se lo saltan, aunque sean más chicos.</p>` +
+      cta([`Cupo de ${R}: ${v('c-din', fmt(cupoUTM[g]) + ' UTM')}`, `Entran ${v('c-cupo', r.n + ' proyectos')}: ${fmt(r.utm)} UTM`, `Saldo: ${fmt(cupoUTM[g])} − ${fmt(r.utm)} = ${v('c-din', fmt(saldo) + ' UTM')}`,
+        stop ? `El siguiente (${fmt(stop[2], 2)} pts) pide ${fmt(stop[3])} UTM → ${v('c-banda', 'no cabe: la fila se detiene')}` : 'Todos sus proyectos caben en el cupo.'])) +
+    box('porque', '¿Por qué así?', 'Nadie se salta a nadie',
+      `<p>Si entrara un proyecto de menor puntaje antes que otro de mayor puntaje de la misma región, sería muy difícil de defender ante un reclamo.</p><p>El que no cabe no queda descartado: compite de nuevo en el fondo común, en el mismo acto de adjudicación (pestaña 3).</p>`);
+  let h = `<thead><tr><th>Lugar en la fila</th><th>Folio</th><th>Puntaje</th><th>Pide (UTM)</th><th>Acumulado (UTM)</th><th>Resultado</th></tr></thead><tbody>`, after = false;
+  r.lista.forEach((i, k) => {
+    const x = A.N[i], s = A.res[i].st;
+    let chip;
+    if (s === 'cupo') chip = '<span class="chip ch-cupo">Entra con el cupo</span>';
+    else if (i === r.stop) chip = '<span class="chip ch-no">No cabe: detiene la fila</span>';
+    else if (s === 'fc') chip = '<span class="chip ch-fc">Entra por el fondo común</span>';
+    else chip = after ? '<span class="chip ch-skip">No se salta · queda fuera</span>' : '<span class="chip ch-no">Queda fuera</span>';
+    h += `<tr class="${i === r.stop ? 'sel' : ''}"><td>${k + 1}</td><td>${x[0]}/2025</td><td>${fmt(x[2], 2)}</td><td>${fmt(x[3], 1)}</td><td>${s === 'cupo' || i === r.stop ? fmt(A.res[i].acc, 1) : ''}</td><td class="t">${chip}</td></tr>`;
+    if (i === r.stop) after = true;
+  });
+  $('tProj').innerHTML = h + '</tbody>';
+}
+
+// ---------- 3 · fondo común ----------
+function viewFondo() {
+  const { A, cupoUTM } = calc, g = gi(), R = REGS[g], idx = shown();
+  const byReg = {}; A.fc.forEach(i => { const n = REGS[A.N[i][1]]; byReg[n] = (byReg[n] || 0) + 1; });
+  const quien = Object.entries(byReg).sort((a, b) => b[1] - a[1]).map(([n, k]) => `${k} de ${n}`).join(', ');
+  const sal = idx.map(i => cupoUTM[i] - A.reg[i].utm);
+  $('boxFondo').innerHTML =
+    box('simple', 'Paso 3', 'El saldo: lo que cada región no usa',
+      `<p>Puede quedar dinero porque la región no tuvo suficientes proyectos o porque el siguiente de la fila era muy grande para lo que quedaba.</p>` +
+      cta([`${R}: cupo ${fmt(cupoUTM[g])} − usado ${fmt(A.reg[g].utm)} = ${v('c-din', fmt(cupoUTM[g] - A.reg[g].utm) + ' UTM')}`])) +
+    box('simple', 'Paso 4', 'El fondo común: una segunda oportunidad',
+      `<p>Los saldos de todas las regiones se juntan. Con ese dinero se ordenan, por puntaje, todos los proyectos que quedaron fuera en el país, con la misma regla de la fila.</p>` +
+      cta([`Suma de los saldos: ${v('c-din', fmt(A.pool) + ' UTM')}`, `Entran ${v('c-cupo', A.fc.length + ' proyectos')} por ${fmt(A.usado)} UTM`, quien || 'Ningún proyecto cabe'])) +
+    box('simple', 'Paso 5', 'El remanente: lo que la Ley ya resuelve',
+      `<p>Lo que sobra después del fondo común pasa al otro concurso del Fondo (art. 30 de la Ley 20.283) y, si aún queda, se abre una segunda convocatoria.</p>` +
+      cta([`${fmt(A.pool)} − ${fmt(A.usado)} = ${v('c-resc', fmt(A.rem) + ' UTM')}`])) +
+    box('porque', '¿Por qué así?', 'Ninguna región deja dinero sin usar',
+      `<p>El fondo común se resuelve en el mismo acto de adjudicación, sin atrasar a nadie, y da otra oportunidad a los proyectos grandes que no cupieron en su región.</p>`);
+  const mx = Math.max(...sal, 1);
+  $('bars').innerHTML = idx.map((i, k) => `<div class="brow"><div>${REGS[i]}</div><div><div class="b" style="width:${(100 * sal[k] / mx).toFixed(1)}%"></div></div><div class="v">${fmt(sal[k])}</div></div>`).join('');
+  let f = `<thead><tr><th>Lugar</th><th>Región</th><th>Puntaje</th><th>Pide (UTM)</th></tr></thead><tbody>`;
+  A.fc.forEach((i, k) => { const x = A.N[i]; f += `<tr><td>${k + 1}</td><td class="t">${REGS[x[1]]}</td><td>${fmt(x[2], 2)}</td><td>${fmt(x[3], 1)}</td></tr>`; });
+  if (A.fcStop != null) { const x = A.N[A.fcStop]; f += `<tr class="sel"><td></td><td class="t">${REGS[x[1]]} · no cabe, el fondo se detiene</td><td>${fmt(x[2], 2)}</td><td>${fmt(x[3], 1)}</td></tr>`; }
+  $('tFC').innerHTML = f + '</tbody>';
+  let h = `<thead><tr><th>Región</th><th class="c-din">Cupo (UTM)</th><th>Con su cupo</th><th class="c-din">Saldo</th><th>Por el fondo común</th><th>Total de proyectos</th><th class="c-din">Total UTM</th></tr></thead><tbody>`;
+  const T = { c: 0, n: 0, s: 0, f: 0, u: 0 };
+  idx.forEach(i => { const r = A.reg[i], s = cupoUTM[i] - r.utm; T.c += cupoUTM[i]; T.n += r.n; T.s += s; T.f += r.nFC; T.u += r.utm + r.utmFC;
+    h += `<tr class="${i === g ? 'sel' : ''}"><td class="t">${REGS[i]}</td><td class="c-din">${fmt(cupoUTM[i])}</td><td>${r.n}</td><td class="c-din">${fmt(s)}</td><td>${r.nFC || ''}</td><td><b>${r.n + r.nFC}</b></td><td class="c-din">${fmt(r.utm + r.utmFC)}</td></tr>`; });
+  $('tRes').innerHTML = h + `<tr class="tot"><td class="t">País</td><td class="c-din">${fmt(T.c)}</td><td>${T.n}</td><td class="c-din">${fmt(T.s)}</td><td>${T.f}</td><td>${T.n + T.f}</td><td class="c-din">${fmt(T.u)}</td></tr></tbody>`;
+}
+
+// ---------- 4 · 2028 ----------
+function view28() {
+  const { D, M, C } = calc, g = gi(), R = REGS[g], d = S.d28[S.cc];
+  document.querySelectorAll('.rn').forEach(e => e.textContent = R);
+  const cv = d.conc[g] == null ? 0.202 : d.conc[g], av = d.av[g] == null ? 0.5 : d.av[g];
+  $('conc').value = (cv * 100).toFixed(1); $('av').value = Math.round(av * 100);
+  $('concV').innerHTML = `<span class="c-conc">${fmt(cv * 100, 1)}%</span> · país 20,2%`;
+  $('avV').innerHTML = `<span class="c-av">${fmt(av * 100, 0)}%</span> · país 50%`;
+  const lee = x => (x > 1.005 ? `${fmt((x - 1) * 100, 0)}% mejor que el promedio` : x < 0.995 ? `${fmt((1 - x) * 100, 0)}% bajo el promedio` : 'igual al promedio');
+  if (C.v[g] === 0) { $('box28').innerHTML = box('porque', 'Atención', `${R} no tiene cupo en este concurso`, '<p>Con cupo 0% en 2027, la banda la deja en 0% también en 2028: sus proyectos compiten en el fondo común. Elige otra región arriba.</p>'); }
+  else {
+    const fin = { tope: `queda sobre su tope → ${v('c-cupo', pc(D.v[g]) + ' (tope)')}`, piso: `queda bajo su piso → ${v('c-cupo', pc(D.v[g]) + ' (piso)')}`, libre: `cae dentro de su banda → ${v('c-cupo', pc(D.v[g]))}`, sin: 'sin cupo' }[D.estado[g]];
+    $('box28').innerHTML =
+      box('simple', 'Concreción', '¿Qué parte de lo adjudicado terminó pagada?',
+        `<p>Se miran los concursos 2019 a 2023, porque un proyecto tarda años en pagarse. Se divide lo pagado por lo adjudicado.</p>` +
+        cta([`Ejemplo: si a ${R} se le adjudicaron 10.000 UTM`, `y se pagaron ${fmt(10000 * cv)} UTM:`, `${fmt(10000 * cv)} ÷ 10.000 = ${v('c-conc', fmt(cv * 100, 1) + '%')}`])) +
+      box('simple', 'Comparar con el país', 'Concreción relativa',
+        `<p>Se divide por la concreción del país (20,2%). Así, 1 es el promedio: más de 1 es mejor, menos de 1 es peor.</p>` +
+        cta([`${fmt(cv * 100, 1)} ÷ 20,2 = ${v('c-conc', fmt(D.rc[g], 2))}`, lee(D.rc[g])]) +
+        `<p class="note">Si un año malo afecta a todas las regiones, nadie pierde por eso: lo que cuenta es la comparación.</p>`) +
+      box('simple', 'Avance', '¿Lo recién adjudicado está avanzando?',
+        `<p>De lo adjudicado en el concurso 2026, qué parte tiene aviso de inicio de faenas al 31 de octubre de 2027: es decir, qué proyectos ya empezaron a ejecutar. Se compara con el país (50%).</p>` +
+        cta([`Avance de ${R}: ${v('c-av', fmt(av * 100, 0) + '%')}`, `${fmt(av * 100, 0)} ÷ 50 = ${v('c-av', fmt(D.ra[g], 2))}`, lee(D.ra[g])])) +
+      box('simple', 'Índice', 'Mitad concreción y mitad avance',
+        `<p>La concreción mira el pasado y es segura; el avance mira el presente y llega a tiempo. Por eso pesan lo mismo.</p>` +
+        cta([`0,5 × ${fmt(D.rc[g], 2)} + 0,5 × ${fmt(D.ra[g], 2)} = ${v('c-ind', fmt(D.ind[g], 2))}`])) +
+      box('simple', 'Factor', 'El efecto se suaviza a la mitad',
+        `<p>El factor dice cuánto se mueve el cupo. Sólo la mitad del índice cuenta, para que nadie cambie demasiado de una vez.</p>` +
+        cta([`0,5 + 0,5 × ${fmt(D.ind[g], 2)} = ${v('c-ind', fmt(D.fac[g], 3))}`, D.fac[g] >= 1 ? `el cupo sube ${fmt((D.fac[g] - 1) * 100, 1)}% antes de la banda` : `el cupo baja ${fmt((1 - D.fac[g]) * 100, 1)}% antes de la banda`])) +
+      box('porque', 'Cupo 2028', 'Del factor al cupo, con las mismas reglas de 2027',
+        `<p>Cupo 2027 × factor; luego el reescalado (todos por un mismo número) y la banda de ±${fmt(S.banda * 100)}% sobre el cupo 2027.</p>` +
+        cta([`${p2(D.c27[g])} × ${fmt(D.fac[g], 3)} = ${pc(D.base[g])}`, `Reescalado: × ${fmt(D.lam, 3)} = ${pc(D.lam * D.base[g])}`, `Banda: entre ${pc(D.piso[g])} y ${pc(D.tope[g])}`, fin, `≈ ${v('c-din', fmt(D.v[g] * M.utm[S.cc]) + ' UTM')}`]));
+  }
+  const idx = shown().filter(i => C.v[i] > 0);
+  let h = `<thead><tr><th>Región</th><th class="c-cupo">Cupo 2027</th><th class="c-conc">Concreción vs. país</th><th class="c-av">Avance vs. país</th><th class="c-ind">Factor</th><th class="c-cupo">Cupo 2028</th><th>Qué pasó</th><th>Cambio</th></tr></thead><tbody>`;
+  idx.forEach(i => { h += `<tr class="${i === g ? 'sel' : ''}"><td class="t">${REGS[i]}</td><td class="c-cupo">${pc(D.c27[i])}</td><td class="c-conc">${fmt(D.rc[i], 2)}</td><td class="c-av">${fmt(D.ra[i], 2)}</td><td class="c-ind">${fmt(D.fac[i], 3)}</td><td class="c-cupo"><b>${pc(D.v[i])}</b></td><td class="t"><span class="chip ${EST[D.estado[i]][1]}">${EST[D.estado[i]][0]}</span></td><td>${(D.v[i] >= D.c27[i] ? '+' : '') + fmt((D.v[i] - D.c27[i]) * 100, 2)} pts</td></tr>`; });
+  $('t28').innerHTML = h + '</tbody>';
+}
+
+function render() {
+  compute();
+  $('bandaV').textContent = '±' + Math.round(S.banda * 100) + '%';
+  ['OI', 'PP'].forEach(c => $('cc-' + c).setAttribute('aria-pressed', String(S.cc === c)));
+  if (calc.C.adj[gi()] === 0) S.reg = 'Maule';
+  $('regSel').innerHTML = shown().map(i => `<option ${REGS[i] === S.reg ? 'selected' : ''}>${REGS[i]}</option>`).join('');
+  kpis();
+  ({ cupos: viewCupos, region: viewRegion, fondo: viewFondo, ajuste: view28 })[S.tab]();
+}
+function setTab(t) {
+  S.tab = t;
+  ['cupos', 'region', 'fondo', 'ajuste'].forEach(k => { $('t-' + k).setAttribute('aria-selected', String(k === t)); $('v-' + k).hidden = k !== t; });
+  if (t === 'ajuste' && S.d28[S.cc].conc[gi()] == null && S.reg === 'Maule') S.reg = "O'Higgins";
+  render();
+}
+['cupos', 'region', 'fondo', 'ajuste'].forEach(k => $('t-' + k).onclick = () => setTab(k));
+['OI', 'PP'].forEach(c => $('cc-' + c).onclick = () => { S.cc = c; render(); });
+$('banda').oninput = e => { S.banda = +e.target.value / 100; render(); };
+$('pres').onchange = e => { const x = +e.target.value; if (x >= 500 && x <= 15000) S.pres = x; else e.target.value = S.pres; render(); };
+$('regSel').onchange = e => { S.reg = e.target.value; render(); };
+$('reset').onclick = () => { Object.assign(S, DEF, { d28: ex28() }); $('banda').value = 15; $('pres').value = 3588; render(); };
+$('conc').oninput = e => { S.d28[S.cc].conc[gi()] = +e.target.value / 100; render(); };
+$('av').oninput = e => { S.d28[S.cc].av[gi()] = +e.target.value / 100; render(); };
+$('reset28').onclick = () => { S.d28 = ex28(); render(); };
+const hk = (location.hash || '').slice(1);
+setTab(['cupos', 'region', 'fondo', 'ajuste'].includes(hk) ? hk : 'cupos');
+</script>
+
+</body></html>

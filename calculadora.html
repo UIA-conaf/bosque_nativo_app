@@ -1,0 +1,399 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Calculadora del polinomio FCBN</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: herramienta de dos columnas — ficha del proyecto a la izquierda, resultado fijo a la derecha; abajo, la comparación de proyectos. */
+:root{
+  --bg:#EEF2EE; --surface:#FBFCFA; --surface2:#E4EBE5; --ink:#15283A; --muted:#566676; --line:#CFD9D1;
+  --forest:#2D6A3A; --forest-soft:#DCEBDD; --blue:#2C548F; --blue-soft:#DEE6F3; --ochre:#A9530E; --ochre-soft:#F5E5D6;
+  --hoy:#8C99A6; --font:'Public Sans',Verdana,sans-serif; --mono:'IBM Plex Mono',Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1A17; --surface:#16231F; --surface2:#1E2E29; --ink:#E5ECE6; --muted:#9FB0A8; --line:#2C3E38;
+  --forest:#7CC08A; --forest-soft:#20392A; --blue:#8FB0E6; --blue-soft:#1D2C45; --ochre:#E9A060; --ochre-soft:#3A2818; --hoy:#7F8D99; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1A17; --surface:#16231F; --surface2:#1E2E29; --ink:#E5ECE6; --muted:#9FB0A8; --line:#2C3E38;
+  --forest:#7CC08A; --forest-soft:#20392A; --blue:#8FB0E6; --blue-soft:#1D2C45; --ochre:#E9A060; --ochre-soft:#3A2818; --hoy:#7F8D99; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:end;justify-content:space-between}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--forest)}
+h1{font-size:clamp(24px,3.2vw,34px);font-weight:800;line-height:1.1;margin:4px 0 0;text-wrap:balance}
+.lede{color:var(--muted);max-width:68ch;margin:6px 0 0}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.sticky{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+@media (max-width:900px){.sticky{position:static}}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+legend{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:0;margin-bottom:6px;display:flex;gap:8px;align-items:center}
+legend .dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.row label{font-weight:600;font-size:14px}
+.row small,.hint{display:block;color:var(--muted);font-weight:400;font-size:12.5px}
+.ctrl{display:flex;gap:8px;align-items:center;justify-content:end;flex-wrap:wrap}
+input[type=number],input[type=text],select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;min-width:0}
+input[type=number]{width:110px;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+input[type=text]{width:100%}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--bg)}
+.seg button{font:inherit;font-size:13.5px;font-weight:600;border:0;background:transparent;color:var(--muted);padding:7px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.chip{font-family:var(--mono);font-size:12.5px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--surface2);color:var(--ink);white-space:nowrap;min-width:52px;text-align:center}
+.chip.new{background:var(--blue-soft);color:var(--blue)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.two{grid-template-columns:1fr}.row{grid-template-columns:1fr}.ctrl{justify-content:start}}
+.rodales{display:flex;flex-direction:column;gap:8px}
+.rodal{display:grid;grid-template-columns:auto 110px minmax(0,1fr) auto;gap:8px;align-items:center}
+.rodal span{color:var(--muted);font-size:13px}
+button.lnk{font:inherit;font-size:13.5px;font-weight:600;color:var(--forest);background:none;border:0;padding:4px 0;cursor:pointer;align-self:start}
+button.x{font:inherit;border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:7px;width:30px;height:30px;cursor:pointer}
+.btn{font:inherit;font-weight:700;font-size:14px;border-radius:9px;padding:9px 14px;cursor:pointer;border:1px solid var(--forest);background:var(--forest);color:var(--surface)}
+.btn.ghost{background:transparent;color:var(--forest)}
+.btn.warn{border-color:var(--ochre);background:transparent;color:var(--ochre)}
+hr{border:0;border-top:1px solid var(--line);margin:2px 0}
+.scores{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.score{border-radius:12px;padding:12px 14px;background:var(--surface2);display:flex;flex-direction:column;gap:2px}
+.score b{font-family:var(--mono);font-size:clamp(24px,3vw,32px);font-variant-numeric:tabular-nums;line-height:1.1}
+.score span{font-size:12.5px;color:var(--muted)}
+.score.main{background:var(--forest);color:var(--surface)}
+.score.main span{color:var(--forest-soft)}
+.score.comun{background:var(--blue-soft)}
+.score.comun b{color:var(--blue)}
+.formula{font-family:var(--mono);font-size:13.5px;background:var(--bg);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;overflow-x:auto;white-space:nowrap}
+.formula em{font-style:normal;color:var(--forest);font-weight:600}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;font-size:13.5px}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+th:first-child,td:first-child{text-align:left}
+td.num{font-family:var(--mono)}
+tr.blk td{background:var(--surface2);font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+tr.tot td{font-weight:800;border-top:2px solid var(--ink)}
+.bar{display:flex;gap:4px;align-items:center;justify-content:end}
+.bar i{display:inline-block;height:8px;border-radius:2px}
+.up{color:var(--forest);font-weight:700}.down{color:var(--ochre);font-weight:700}
+.note{font-size:12.5px;color:var(--muted)}
+.stack{display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--surface2)}
+.stack div{height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.lista td.sel{font-weight:700}
+.lista tr{cursor:pointer}
+.lista tr.on td{background:var(--forest-soft)}
+.rank{font-family:var(--mono);font-weight:700;display:inline-block;min-width:22px;text-align:center;border-radius:6px;padding:1px 6px;background:var(--surface2)}
+.rank.first{background:var(--forest);color:var(--surface)}
+details summary{cursor:pointer;font-weight:700}
+.params{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.params .box{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.params .box h4{margin:0;font-size:13px}
+.params .box .row{grid-template-columns:1fr auto}
+.params input{width:78px}
+.ok{color:var(--forest);font-weight:700}.bad{color:var(--ochre);font-weight:700}
+.tpwarn{display:block;margin-top:4px;color:var(--ochre);font-weight:600}
+footer{font-size:12.5px;color:var(--muted);max-width:90ch}
+@media (prefers-reduced-motion:no-preference){.score b,.bar i{transition:all .2s ease}}
+</style>
+
+<div class="wrap">
+<header>
+  <div>
+    <div class="eyebrow">Fondo de Bosque Nativo · Ley 20.283</div>
+    <h1>Calculadora del polinomio 2027</h1>
+    <p class="lede">Ingresa los datos de un proyecto y compara su puntaje con el polinomio vigente (Res. Ex. N° 76/2022) y con la propuesta 2027: factor del plan × (terreno + interesado + proyecto).</p>
+  </div>
+  <div class="seg" role="group" aria-label="Concurso">
+    <button type="button" id="c-PPF" data-conc="PPF">Pequeños propietarios</button>
+    <button type="button" id="c-OI" data-conc="OI">Otros interesados</button>
+  </div>
+</header>
+
+<div class="grid">
+  <form class="panel" id="form" autocomplete="off">
+    <fieldset>
+      <legend>Proyecto</legend>
+      <div class="two">
+        <div><label for="nombre" class="hint">Nombre</label><input type="text" id="nombre"></div>
+        <div><label for="region" class="hint">Región (para el orden dentro del cupo)</label><input type="text" id="region"></div>
+      </div>
+      <div class="row"><label>Plan de manejo<small>Ingresado = presentado antes del cierre. Si al adjudicar está rechazado o desistido, cuenta como sin plan.</small></label>
+        <div class="seg" role="group" aria-label="Plan de manejo" id="plan">
+          <button type="button" data-v="Aprobado">Aprobado</button><button type="button" data-v="Ingresado">Ingresado</button><button type="button" data-v="Sin plan">Sin plan</button>
+        </div></div>
+    </fieldset>
+    <hr>
+    <fieldset>
+      <legend><i class="dot" style="background:var(--blue)"></i>Terreno</legend>
+      <div class="row"><label>Rodales y prioridad regional<small>Tabla de cada región: alta 100 · media 60 · baja 20. Se pondera por superficie.</small></label><span class="chip new" id="t-PR">—</span></div>
+      <div class="rodales" id="rodales"></div>
+      <button type="button" class="lnk" id="addRodal">+ Agregar rodal</button>
+      <div class="row"><label for="VE">Variable específica (VE)<small>Tramo de la tabla del literal: especies (a), producción no maderera (b) o estado de desarrollo (c).</small></label><div class="ctrl"><input type="number" id="VE" min="0" max="100" step="5"><span class="chip" id="t-VE">—</span></div></div>
+      <div class="row"><label for="TF">Tipo forestal, tabla nacional<small>Para el puntaje vigente y el puntaje común (fondo común), con el peso de la prioridad regional.</small></label><div class="ctrl"><input type="number" id="TF" min="0" max="100" step="5"><span class="chip" id="t-TF">—</span></div></div>
+    </fieldset>
+    <hr>
+    <fieldset>
+      <legend><i class="dot" style="background:#7A4FA0"></i>Interesado</legend>
+      <div class="row"><label for="TPha">Tamaño del conjunto predial (ha)<small id="tpHint"></small><small id="tpWarn" class="tpwarn" hidden></small></label><div class="ctrl"><input type="number" id="TPha" min="0" step="1"><span class="chip" id="t-TP">—</span></div></div>
+      <div class="row"><label for="zona">Zona de la tabla</label><div class="ctrl"><select id="zona"></select></div></div>
+      <div class="row"><label for="VPI">Pueblos indígenas</label><div class="ctrl"><select id="VPI"><option value="100">Pertenece</option><option value="0">No pertenece</option><option value="75">Colectivo mixto</option></select><span class="chip" id="t-VPI">—</span></div></div>
+      <div class="row" id="rowGP"><label for="GP">Género del propietario</label><div class="ctrl"><select id="GP"><option value="100">Mujer</option><option value="50">No mujer</option><option value="75">Colectivo, mujeres &lt; 50%</option><option value="100b">Colectivo, mujeres &gt; 50%</option></select><span class="chip" id="t-GP">—</span></div></div>
+      <div class="row" id="rowVPS"><label for="predios">N° de predios (postulación colectiva)<small>1 = postulación individual.</small></label><div class="ctrl"><input type="number" id="predios" min="1" step="1"><span class="chip" id="t-VPS">—</span></div></div>
+    </fieldset>
+    <hr>
+    <fieldset>
+      <legend><i class="dot" style="background:var(--ochre)"></i>Proyecto</legend>
+      <div class="row"><label for="jornadas">Mano de obra (jornadas totales)<small id="moHint"></small></label><div class="ctrl"><input type="number" id="jornadas" min="0" step="10"><span class="chip" id="t-MO">—</span></div></div>
+      <div class="row"><label>Bosque quemado<small>Rodal quemado antes del cierre. Cuenta en todos los puntajes.</small></label><div class="seg" id="quemado"><button type="button" data-v="Sí">Sí</button><button type="button" data-v="No">No</button></div></div>
+      <div class="row"><label>Urgencia regional<small>Plaga o enfermedad, sequía, castor o degradación, si la región la eligió. En el fondo común sólo cuenta el incendio. Basta un daño para el tramo máximo: no se suman.</small></label><div class="seg" id="urgencia"><button type="button" data-v="Sí">Sí</button><button type="button" data-v="No">No</button></div></div>
+      <div class="row"><label>Continuidad del plan (VASOB)<small>Actividades secuenciales o complementarias a otras ya bonificadas.</small></label><div class="seg" id="vasob"><button type="button" data-v="Sí">Sí</button><button type="button" data-v="No">No</button></div></div>
+      <div class="row"><label for="utm">Monto solicitado (UTM totales)<small id="vmbsHint"></small></label><div class="ctrl"><input type="number" id="utm" min="0" step="1"><span class="chip" id="t-VMBS">—</span></div></div>
+      <div class="row"><label for="aporte">Aporte del interesado (% del monto bonificable)<small id="vfciHint"></small></label><div class="ctrl"><input type="number" id="aporte" min="0" max="100" step="1"><span class="chip" id="t-VFCI">—</span></div></div>
+    </fieldset>
+    <hr>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <button type="button" class="btn" id="guardar">Guardar en la comparación</button>
+      <button type="button" class="btn ghost" id="nuevo">Proyecto nuevo</button>
+      <button type="button" class="btn warn" id="borrar">Quitar de la comparación</button>
+    </div>
+    <p class="note" id="msg" role="status"></p>
+  </form>
+
+  <section class="panel sticky" aria-live="polite">
+    <div class="scores">
+      <div class="score"><span>Vigente</span><b id="s-vig">—</b><span>Res. Ex. 76/2022</span></div>
+      <div class="score main"><span>Puntaje 2027</span><b id="s-27">—</b><span>orden dentro del cupo</span></div>
+      <div class="score comun"><span>Puntaje común</span><b id="s-com">—</b><span>orden en el fondo común · TF nacional</span></div>
+    </div>
+    <div class="formula" id="formula"></div>
+    <div>
+      <div class="stack" id="stack" aria-hidden="true"></div>
+      <div class="legend" style="margin-top:6px"><span><i style="background:var(--blue)"></i>Terreno</span><span><i style="background:#7A4FA0"></i>Interesado</span><span><i style="background:var(--ochre)"></i>Proyecto</span><span><i style="background:var(--surface2);border:1px solid var(--line)"></i>Lo que resta el factor</span></div>
+    </div>
+    <div class="tbl">
+      <table id="detalle">
+        <thead><tr><th>Variable</th><th>Tramo</th><th>Pts hoy</th><th>Pts 2027</th><th>Δ</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="note">Pts = tramo × peso ÷ 100. Puntaje común = mismo cálculo y mismos pesos, con el tipo forestal de la tabla nacional en lugar de la prioridad regional y sin la urgencia regional (sólo incendio), × factor.</p>
+  </section>
+</div>
+
+<section class="panel">
+  <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline">
+    <h2 style="margin:0;font-size:20px">Comparación de proyectos</h2>
+    <span class="note">Haz clic en un proyecto para editarlo. Se guardan sólo en este navegador. Los seis primeros son ejemplos ficticios.</span>
+  </div>
+  <div class="tbl">
+    <table class="lista" id="lista">
+      <thead><tr><th>Proyecto</th><th>Región</th><th>Concurso</th><th>Plan</th><th>Vigente</th><th>Lugar</th><th>2027</th><th>Lugar en región</th><th>Común</th><th>Lugar fondo común</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p class="note">«Lugar» vigente y común: dentro del mismo concurso. «Lugar en región»: dentro del mismo concurso y región.</p>
+</section>
+
+<details class="panel" id="paramsBox">
+  <summary>Parámetros 2027 (editables)</summary>
+  <p class="note">Coeficientes en la notación de las bases. Cada grupo debe sumar 1,00. Los cambios se aplican al instante a todos los proyectos.</p>
+  <div class="params" id="params"></div>
+  <div><button type="button" class="btn ghost" id="resetParams">Volver a los valores propuestos</button></div>
+</details>
+
+<footer>Fuentes: Res. Ex. N° 76 de 2022 del Ministerio de Agricultura (Diario Oficial, 5 de marzo de 2022), fórmulas y tablas vigentes; propuesta: informe «Rediseño del FCBN · nuevo concurso 2027-2028» (Gerencia de Bosques y Cambio Climático, octubre de 2026), Tablas 12 y 13. Pesos 2027 tentativos. El tamaño predial de una postulación colectiva se divide por el número de predios; el monto solicitado colectivo, también.</footer>
+</div>
+
+<script>
+(function(){
+const BASE = {
+  PPF:{hoy:{VT:.40,VI:.20,VP:.35,VPS:.05,TF:.30,PR:0,VE:.70,TP:.5,VPI:.5,GP:0,VBSU:.45,VASOB:.35,VMBS:.10,VFCI:.10,PM:.30,MO:.30,BQ:.40},
+       p:{VT:.40,VI:.20,VP:.35,VPS:.05,TF:0,PR:.40,VE:.60,TP:.5,VPI:.5,GP:0,VBSU:.50,VASOB:.35,VMBS:.05,VFCI:.10,PM:0,MO:.5,BQ:.5},
+       fpm:{Aprobado:1,Ingresado:.85,'Sin plan':.70}},
+  OI:{hoy:{VT:.25,VI:.20,VP:.55,VPS:0,TF:.40,PR:0,VE:.60,TP:.4,VPI:.4,GP:.2,VBSU:.55,VASOB:.20,VMBS:.15,VFCI:.10,PM:.65,MO:.10,BQ:.25},
+      p:{VT:.30,VI:.20,VP:.50,VPS:0,TF:0,PR:.40,VE:.60,TP:.4,VPI:.4,GP:.2,VBSU:.50,VASOB:.35,VMBS:.05,VFCI:.10,PM:0,MO:.5,BQ:.5},
+      fpm:{Aprobado:1,Ingresado:.80,'Sin plan':.60}}
+};
+const PRT = {Alta:100, Media:60, Baja:20};
+let P = JSON.parse(JSON.stringify(BASE));
+const LS = 'fcbn-calc-v1';
+const ZONAS = {
+  PPF:[['centro','Regiones V a X, XIV y RM'],['norte','Regiones I a IV y XV'],['austral','XI, XII, Palena y Lonquimay']],
+  OI:[['general','Resto del país'],['austral','Aysén y Magallanes'],['comunidad','Comunidad agrícola']]
+};
+const EJ = [
+ {nombre:'Ejemplo A',region:'Región X',conc:'OI',plan:'Aprobado',TF:75,rod:[[20,'Alta']],VE:50,TPha:300,zona:'general',VPI:'0',GP:'50',predios:1,jornadas:1000,quemado:'No',urgencia:'No',vasob:'Sí',utm:142,aporte:5},
+ {nombre:'Ejemplo B',region:'Región X',conc:'OI',plan:'Sin plan',TF:100,rod:[[30,'Media']],VE:100,TPha:500,zona:'general',VPI:'100',GP:'100',predios:1,jornadas:2000,quemado:'Sí',urgencia:'No',vasob:'Sí',utm:213,aporte:0},
+ {nombre:'Ejemplo C',region:'Región X',conc:'OI',plan:'Ingresado',TF:50,rod:[[15,'Baja']],VE:75,TPha:200,zona:'general',VPI:'0',GP:'100',predios:1,jornadas:1200,quemado:'No',urgencia:'Sí',vasob:'Sí',utm:106,aporte:25},
+ {nombre:'Ejemplo D',region:'Región Y',conc:'OI',plan:'Aprobado',TF:75,rod:[[10,'Alta'],[5,'Baja']],VE:75,TPha:150,zona:'general',VPI:'0',GP:'50',predios:1,jornadas:900,quemado:'No',urgencia:'No',vasob:'No',utm:75,aporte:0},
+ {nombre:'Ejemplo E',region:'Región X',conc:'PPF',plan:'Aprobado',TF:75,rod:[[5,'Alta']],VE:100,TPha:8,zona:'centro',VPI:'0',GP:'50',predios:1,jornadas:200,quemado:'No',urgencia:'No',vasob:'No',utm:12,aporte:0},
+ {nombre:'Ejemplo F',region:'Región X',conc:'PPF',plan:'Sin plan',TF:100,rod:[[8,'Media']],VE:100,TPha:9,zona:'centro',VPI:'100',GP:'50',predios:3,jornadas:200,quemado:'Sí',urgencia:'No',vasob:'Sí',utm:75,aporte:0}
+];
+let lista = [], sel = 0;
+try { const s = JSON.parse(localStorage.getItem(LS)||'null'); if (s && Array.isArray(s.lista) && s.lista.length) { lista = s.lista; if (s.P) P = s.P; } } catch(e) {}
+if (!lista.length) lista = JSON.parse(JSON.stringify(EJ));
+let cur = JSON.parse(JSON.stringify(lista[0]));
+const save = () => { try { localStorage.setItem(LS, JSON.stringify({lista, P})); } catch(e) {} };
+const $ = id => document.getElementById(id);
+const fmt = (n,d=1) => (n===null||n===undefined||isNaN(n)) ? '—' : n.toLocaleString('es-CL',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+// ---------- tramos (Res. Ex. 76/2022)
+function tTP(c){const ha=+c.TPha||0, pr=Math.max(1,+c.predios||1), z=c.zona;
+  if (c.conc==='OI'){ if (z==='comunidad') return 100; return ha <= (z==='austral'?1000:700) ? 100 : 50; }
+  const h = ha/pr;
+  const T = z==='austral' ? [[45,100],[100,80],[220,60],[580,40],[800,20]] : [[10,100],[20,80],[40,60],[80,40],[z==='norte'?500:200,20]];
+  for (const [lim,v] of T) if (h<=lim) return v; return 0;}
+function tMO(c){const j=+c.jornadas||0;
+  if (c.conc==='OI') return j>=3000?100:j>=1500?80:60;
+  return j>=1000?100:j>=750?80:j>=500?60:j>=250?40:20;}
+function tVMBS(c){if(c.conc==='OI'){const u=+c.utm||0; return u<=350?100:u<=700?50:20;} const u=(+c.utm||0)/Math.max(1,+c.predios||1); return u<=15?100:u<=30?80:u<=50?60:u<=90?40:20;}
+function tVFCI(c){const a=+c.aporte||0; if(c.conc==='OI') return a>=30?100:a>=10?50:20; return a>=50?100:a>=30?75:a>=20?50:a>=10?25:15;}
+function tVPS(c){const n=+c.predios||1; return n>=10?100:n>=7?75:n>=4?50:n>=2?25:0;}
+function tPR(c){let s=0,h=0; for (const [ha,pr] of c.rod){const x=+ha||0; s+=x*(PRT[pr]??20); h+=x;} return h? s/h : 0;}
+const clamp = v => Math.max(0,Math.min(100,+v||0));
+function tramos(c){
+  return {TF:clamp(c.TF), PR:tPR(c), VE:clamp(c.VE), TP:tTP(c), VPI:+String(c.VPI).replace('b',''), GP:c.conc==='OI'?+String(c.GP).replace('b',''):0,
+    VPS:c.conc==='PPF'?tVPS(c):0, PM:c.plan==='Aprobado'?100:0, MO:tMO(c), BQ:c.quemado==='Sí'?100:0, BQD:(c.quemado==='Sí'||c.urgencia==='Sí')?100:0,
+    VASOB:c.vasob==='Sí'?100:0, VMBS:tVMBS(c), VFCI:tVFCI(c)};
+}
+function pesos(k){ // puntos por variable
+  return {TF:100*k.VT*k.TF, PR:100*k.VT*k.PR, VE:100*k.VT*k.VE, TP:100*k.VI*k.TP, VPI:100*k.VI*k.VPI, GP:100*k.VI*k.GP, VPS:100*k.VPS,
+    PM:100*k.VP*k.VBSU*k.PM, MO:100*k.VP*k.VBSU*k.MO, BQ:100*k.VP*k.VBSU*k.BQ, VASOB:100*k.VP*k.VASOB, VMBS:100*k.VP*k.VMBS, VFCI:100*k.VP*k.VFCI};
+}
+function calc(c){
+  const t=tramos(c), wh=pesos(P[c.conc].hoy), wp=pesos(P[c.conc].p);
+  const ph = {TF:t.TF*wh.TF, VE:t.VE*wh.VE, TP:t.TP*wh.TP, VPI:t.VPI*wh.VPI, GP:t.GP*wh.GP, VPS:t.VPS*wh.VPS, PM:t.PM*wh.PM, MO:t.MO*wh.MO, BQ:t.BQ*wh.BQ, VASOB:t.VASOB*wh.VASOB, VMBS:t.VMBS*wh.VMBS, VFCI:t.VFCI*wh.VFCI};
+  for (const k in ph) ph[k]/=100;
+  const pp = {PR:t.PR*wp.PR, VE:t.VE*wp.VE, TP:t.TP*wp.TP, VPI:t.VPI*wp.VPI, GP:t.GP*wp.GP, VPS:t.VPS*wp.VPS, MO:t.MO*wp.MO, BQ:t.BQD*wp.BQ, VASOB:t.VASOB*wp.VASOB, VMBS:t.VMBS*wp.VMBS, VFCI:t.VFCI*wp.VFCI};
+  for (const k in pp) pp[k]/=100;
+  const vig = Object.values(ph).reduce((a,b)=>a+b,0);
+  const T = pp.PR+pp.VE, I = pp.TP+pp.VPI+pp.GP+pp.VPS, Pr = pp.MO+pp.BQ+pp.VASOB+pp.VMBS+pp.VFCI;
+  const suma=T+I+Pr, f=P[c.conc].fpm[c.plan] ?? 1, div = 1 - wp.PR/100;
+  const comun = (suma - pp.PR + t.TF*wp.PR/100 - (t.BQD-t.BQ)*wp.BQ/100)*f;
+  return {t,wh,wp,ph,pp,vig,T,I,Pr,suma,f,p27:suma*f,comun,div};
+}
+
+// ---------- form
+function seg(id, val){ $(id).querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.v===val))); }
+function fillZonas(){ const z=$('zona'); z.innerHTML=''; for (const [v,l] of ZONAS[cur.conc]) { const o=document.createElement('option'); o.value=v; o.textContent=l; z.appendChild(o);} if (!ZONAS[cur.conc].some(x=>x[0]===cur.zona)) cur.zona=ZONAS[cur.conc][0][0]; z.value=cur.zona; }
+function drawRodales(){
+  const box=$('rodales'); box.innerHTML='';
+  cur.rod.forEach((r,i)=>{
+    const d=document.createElement('div'); d.className='rodal';
+    d.innerHTML=`<span>Rodal ${i+1}</span><input type="number" id="rha${i}" min="0" step="0.5" aria-label="Hectáreas del rodal ${i+1}" value="${r[0]}"><span class="hint">ha</span><select id="rpr${i}" aria-label="Prioridad del rodal ${i+1}"><option>Alta</option><option>Media</option><option>Baja</option></select><button type="button" class="x" aria-label="Quitar rodal ${i+1}">×</button>`;
+    box.appendChild(d);
+    d.querySelector('select').value=r[1];
+    d.querySelector('input').addEventListener('input',e=>{cur.rod[i][0]=e.target.value; update();});
+    d.querySelector('select').addEventListener('change',e=>{cur.rod[i][1]=e.target.value; update();});
+    d.querySelector('.x').addEventListener('click',()=>{ if (cur.rod.length>1){cur.rod.splice(i,1); drawRodales(); update();} });
+  });
+}
+function load(c){
+  cur = JSON.parse(JSON.stringify(c));
+  for (const k of ['nombre','region','TF','VE','TPha','VPI','GP','predios','jornadas','utm','aporte']) $(k).value = cur[k] ?? '';
+  ['c-PPF','c-OI'].forEach(id=>$(id).setAttribute('aria-pressed', String($(id).dataset.conc===cur.conc)));
+  seg('plan',cur.plan); seg('quemado',cur.quemado); seg('urgencia',cur.urgencia); seg('vasob',cur.vasob);
+  fillZonas(); drawRodales(); update();
+}
+['nombre','region','TF','VE','TPha','predios','jornadas','utm','aporte'].forEach(k=>$(k).addEventListener('input',e=>{cur[k]=e.target.value; update();}));
+['VPI','GP','zona'].forEach(k=>$(k).addEventListener('change',e=>{cur[k]=e.target.value; update();}));
+[['plan','plan'],['quemado','quemado'],['urgencia','urgencia'],['vasob','vasob']].forEach(([id,k])=>$(id).addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return; cur[k]=b.dataset.v; seg(id,cur[k]); update();}));
+document.querySelectorAll('[data-conc]').forEach(b=>b.addEventListener('click',()=>{cur.conc=b.dataset.conc; document.querySelectorAll('[data-conc]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); fillZonas(); update();}));
+$('addRodal').addEventListener('click',()=>{ if (cur.rod.length<6){ cur.rod.push([5,'Media']); drawRodales(); update(); } });
+
+// ---------- render
+const LAB = {PR:'Prioridad regional', TF:'Tipo forestal nacional', VE:'Variable específica', TP:'Tamaño del predio', VPI:'Pueblos indígenas', GP:'Género', VPS:'Postulación colectiva', PM:'Plan de manejo', MO:'Mano de obra', BQ:'Bosque quemado o dañado', VASOB:'Continuidad del plan', VMBS:'Monto solicitado', VFCI:'Financiamiento propio'};
+function update(){
+  const r = calc(cur), t=r.t, isOI=cur.conc==='OI';
+  $('rowGP').hidden = !isOI; $('rowVPS').hidden = isOI;
+  $('tpHint').textContent = isOI ? '≤700 ha: 100 · más: 50 (Aysén y Magallanes: 1.000 ha; comunidad agrícola: 100)' : 'Tabla por zona; en postulación colectiva se divide por el número de predios.';
+  $('vmbsHint').textContent = isOI ? 'Total del proyecto. ≤350: 100 · ≤700: 50 · más: 20' : 'Total del proyecto (colectiva: ÷ n° de predios). ≤15: 100 · ≤30: 80 · ≤50: 60 · ≤90: 40 · más: 20';
+  $('vfciHint').textContent = isOI ? '≥30: 100 · ≥10: 50 · menos: 20' : '≥50: 100 · ≥30: 75 · ≥20: 50 · ≥10: 25 · menos: 15';
+  { const ha=+cur.TPha||0, w=$('tpWarn'); let msg='';
+    if (isOI && cur.zona==='comunidad') msg='Las comunidades agrícolas se consideran pequeños propietarios (Ley 20.283, art. 2 N° 17): revisa en qué concurso postula.';
+    else if (isOI) { const lim = cur.zona==='austral' ? 800 : 200; if (ha>0 && ha<=lim) msg=`Con ${fmt(ha,0)} ha podría ser pequeño propietario (límite ${lim} ha${cur.zona==='austral'?'':'; 500 ha en las regiones I a IV y XV'}) si además cumple los demás requisitos: activos ≤ 3.500 UF, ingreso principal agrícola o forestal y trabaja la tierra. Si los cumple, postula al concurso de pequeños propietarios.`;
+      else if (cur.zona!=='austral' && ha>200 && ha<=500) msg=`Si el predio está entre las regiones I y IV o en la XV (límite 500 ha), podría ser pequeño propietario si cumple los demás requisitos: activos ≤ 3.500 UF, ingreso principal agrícola o forestal y trabaja la tierra.`; }
+    else { const lim = cur.zona==='norte' ? 500 : cur.zona==='austral' ? 800 : 200; const pp = ha/Math.max(1,+cur.predios||1); if (pp>lim) msg=`Supera el límite de pequeño propietario para esta zona (${lim} ha${(+cur.predios||1)>1?' por predio':''}): debe postular a otros interesados.`; }
+    w.textContent=msg; w.hidden=!msg; }
+  $('moHint').textContent = isOI ? '≥3.000: 100 · ≥1.500: 80 · menos: 60' : '≥1.000: 100 · ≥750: 80 · ≥500: 60 · ≥250: 40 · menos: 20';
+  const chips = {PR:t.PR,VE:t.VE,TF:t.TF,TP:t.TP,VPI:t.VPI,GP:t.GP,VPS:t.VPS,MO:t.MO,VMBS:t.VMBS,VFCI:t.VFCI};
+  for (const k in chips) $('t-'+k).textContent = 'tramo ' + fmt(chips[k],0);
+  $('s-vig').textContent = fmt(r.vig); $('s-27').textContent = fmt(r.p27); $('s-com').textContent = fmt(r.comun);
+  $('formula').innerHTML = `<em>${fmt(r.f,2)}</em> × (${fmt(r.T)} terreno + ${fmt(r.I)} interesado + ${fmt(r.Pr)} proyecto) = <b>${fmt(r.p27)}</b>`;
+  const lost = r.suma*(1-r.f);
+  $('stack').innerHTML = `<div style="width:${r.T*r.f}%;background:var(--blue)"></div><div style="width:${r.I*r.f}%;background:#7A4FA0"></div><div style="width:${r.Pr*r.f}%;background:var(--ochre)"></div><div style="width:${lost}%;background:repeating-linear-gradient(45deg,var(--surface2),var(--surface2) 4px,var(--line) 4px,var(--line) 8px)"></div>`;
+  const rows = [['blk','Terreno'],['TF',t.TF,r.ph.TF,0],['PR',t.PR,0,r.pp.PR],['VE',t.VE,r.ph.VE,r.pp.VE],
+    ['blk','Interesado'],['TP',t.TP,r.ph.TP,r.pp.TP],['VPI',t.VPI,r.ph.VPI,r.pp.VPI]].concat(isOI?[['GP',t.GP,r.ph.GP,r.pp.GP]]:[['VPS',t.VPS,r.ph.VPS,r.pp.VPS]]).concat(
+    [['blk','Proyecto'],['PM',t.PM,r.ph.PM,0],['MO',t.MO,r.ph.MO,r.pp.MO],['BQ',t.BQD,r.ph.BQ,r.pp.BQ],['VASOB',t.VASOB,r.ph.VASOB,r.pp.VASOB],['VMBS',t.VMBS,r.ph.VMBS,r.pp.VMBS],['VFCI',t.VFCI,r.ph.VFCI,r.pp.VFCI]]);
+  let h='';
+  for (const x of rows){
+    if (x[0]==='blk'){ h+=`<tr class="blk"><td colspan="5">${x[1]}</td></tr>`; continue; }
+    const [k,tr,a,b]=x, d=b-a, cls=d>0.005?'up':d<-0.005?'down':'';
+    let note=''; if (k==='PM') note=' <span class="note">(pasa al factor)</span>'; if (k==='TF') note=' <span class="note">(pasa a PR)</span>';
+    h+=`<tr><td>${LAB[k]}${note}</td><td class="num">${fmt(tr,0)}</td><td class="num">${fmt(a,2)}</td><td class="num">${fmt(b,2)}</td><td class="num ${cls}">${d>0?'+':''}${fmt(d,2)}</td></tr>`;
+  }
+  h+=`<tr class="tot"><td>Suma de bloques</td><td></td><td class="num">${fmt(r.vig,2)}</td><td class="num">${fmt(r.suma,2)}</td><td></td></tr>`;
+  h+=`<tr><td>× Factor del plan (${cur.plan.toLowerCase()})</td><td></td><td class="num">1,00</td><td class="num">${fmt(r.f,2)}</td><td></td></tr>`;
+  h+=`<tr class="tot"><td>Puntaje</td><td></td><td class="num">${fmt(r.vig,2)}</td><td class="num">${fmt(r.p27,2)}</td><td class="num ${r.p27-r.vig>0?'up':'down'}">${r.p27-r.vig>0?'+':''}${fmt(r.p27-r.vig,2)}</td></tr>`;
+  $('detalle').querySelector('tbody').innerHTML=h;
+  drawLista();
+}
+function drawLista(){
+  const res = lista.map(c=>({c,r:calc(c)}));
+  const rank=(i,key,same)=>1+res.filter((o,j)=>j!==i && same(o.c,res[i].c) && o.r[key]>res[i].r[key]+1e-9).length;
+  let h='';
+  res.forEach((o,i)=>{
+    const lv=rank(i,'vig',(a,b)=>a.conc===b.conc), lr=rank(i,'p27',(a,b)=>a.conc===b.conc&&a.region===b.region), lc=rank(i,'comun',(a,b)=>a.conc===b.conc);
+    const R = n=>`<span class="rank${n===1?' first':''}">${n}°</span>`;
+    h+=`<tr data-i="${i}" class="${i===sel?'on':''}"><td class="sel">${o.c.nombre||'(sin nombre)'}</td><td>${o.c.region||'—'}</td><td>${o.c.conc}</td><td>${o.c.plan}</td><td class="num">${fmt(o.r.vig)}</td><td>${R(lv)}</td><td class="num"><b>${fmt(o.r.p27)}</b></td><td>${R(lr)}</td><td class="num">${fmt(o.r.comun)}</td><td>${R(lc)}</td></tr>`;
+  });
+  const tb=$('lista').querySelector('tbody'); tb.innerHTML=h;
+  tb.querySelectorAll('tr').forEach(tr=>tr.addEventListener('click',()=>{sel=+tr.dataset.i; load(lista[sel]); msg('Editando «'+(lista[sel].nombre||'proyecto')+'». Usa «Guardar» para actualizarlo.');}));
+}
+function msg(t){ $('msg').textContent=t; }
+$('guardar').addEventListener('click',()=>{
+  if (sel>=0 && sel<lista.length){ lista[sel]=JSON.parse(JSON.stringify(cur)); msg('Proyecto actualizado.'); }
+  else { lista.push(JSON.parse(JSON.stringify(cur))); sel=lista.length-1; msg('Proyecto agregado a la comparación.'); }
+  save(); drawLista();
+});
+$('nuevo').addEventListener('click',()=>{ sel=-1; load({nombre:'Proyecto '+(lista.length+1),region:cur.region||'Región X',conc:cur.conc,plan:'Sin plan',TF:50,rod:[[10,'Media']],VE:50,TPha:cur.conc==='OI'?100:10,zona:cur.conc==='OI'?'general':'centro',VPI:'0',GP:'50',predios:1,jornadas:300,quemado:'No',urgencia:'No',vasob:'No',utm:50,aporte:0}); msg('Proyecto nuevo: completa los datos y guárdalo.'); drawLista(); });
+$('borrar').addEventListener('click',()=>{ if (sel<0||sel>=lista.length){ msg('Elige primero un proyecto de la lista.'); return; } const n=lista[sel].nombre; lista.splice(sel,1); if(!lista.length) lista=JSON.parse(JSON.stringify(EJ)); sel=0; save(); load(lista[0]); msg('«'+n+'» se quitó de la comparación.'); });
+
+// ---------- parámetros
+const GRUPOS = [['Puntaje',['VT','VI','VP','VPS']],['VT (terreno)',['PR','VE']],['VI (interesado)',['TP','VPI','GP']],['VP (proyecto)',['VBSU','VASOB','VMBS','VFCI']],['VBSU',['MO','BQ']]];
+function drawParams(){
+  let h='';
+  for (const conc of ['PPF','OI']){
+    for (const [g,ks] of GRUPOS){
+      h+=`<div class="box"><h4>${conc} · ${g}</h4>`;
+      for (const k of ks){ h+=`<div class="row"><label for="p-${conc}-${k}">${k==='BQ'?'BQD':k}</label><input type="number" step="0.05" min="0" max="1" id="p-${conc}-${k}" data-c="${conc}" data-k="${k}" value="${P[conc].p[k]}"></div>`; }
+      h+=`<div class="note" id="chk-${conc}-${g.split(' ')[0]}"></div></div>`;
+    }
+    h+=`<div class="box"><h4>${conc} · factor del plan</h4>`;
+    for (const e of ['Ingresado','Sin plan']) h+=`<div class="row"><label for="f-${conc}-${e}">${e}</label><input type="number" step="0.05" min="0" max="1" id="f-${conc}-${e.replace(' ','')}" data-c="${conc}" data-f="${e}" value="${P[conc].fpm[e]}"></div>`;
+    h+=`</div>`;
+  }
+  $('params').innerHTML=h;
+  $('params').querySelectorAll('input').forEach(inp=>inp.addEventListener('input',e=>{
+    const v=+e.target.value; if (isNaN(v)) return;
+    if (e.target.dataset.f) P[e.target.dataset.c].fpm[e.target.dataset.f]=v; else P[e.target.dataset.c].p[e.target.dataset.k]=v;
+    checks(); save(); update();
+  }));
+  checks();
+}
+function checks(){
+  for (const conc of ['PPF','OI']) for (const [g,ks] of GRUPOS){
+    const s=ks.reduce((a,k)=>a+(+P[conc].p[k]||0),0), el=$(`chk-${conc}-${g.split(' ')[0]}`);
+    if (el) el.innerHTML = Math.abs(s-1)<1e-6 ? `<span class="ok">Suma 1,00</span>` : `<span class="bad">Suma ${fmt(s,2)}: debe dar 1,00</span>`;
+  }
+}
+$('resetParams').addEventListener('click',()=>{ P=JSON.parse(JSON.stringify(BASE)); save(); drawParams(); update(); });
+
+drawParams();
+load(lista[0]);
+})();
+</script>
+
+</body></html>
