@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bosque Nativo · Herramientas</title>
+<style>
+  :root {
+    --bg: #F5F6F2; --panel: #FFFFFF; --ink: #16212E; --mut: #5D6878; --line: #DADFE5;
+    --forest: #2D6A3A;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10161E; --panel: #18212C; --ink: #E6EBF1; --mut: #9AA6B5; --line: #2C3846;
+      --forest: #6FD08F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10161E; --panel: #18212C; --ink: #E6EBF1; --mut: #9AA6B5; --line: #2C3846;
+    --forest: #6FD08F;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size: 15px; line-height: 1.45;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 32px 16px 48px; }
+  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--forest); }
+  h1 { font-size: clamp(24px, 4vw, 32px); font-weight: 800; margin: 4px 0 0; }
+  .lede { color: var(--mut); margin: 8px 0 0; max-width: 62ch; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 28px; }
+  .card {
+    display: flex; flex-direction: column; gap: 10px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 20px; text-decoration: none; color: inherit;
+  }
+  .card:hover, .card:focus-visible { border-color: var(--forest); outline: none; }
+  .card h2 { font-size: 18px; font-weight: 700; margin: 0; }
+  .card p { color: var(--mut); margin: 0; }
+  .card .go { margin-top: auto; font-weight: 600; color: var(--forest); }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="eyebrow">Bosque Nativo · CONAF</div>
+  <h1>Herramientas</h1>
+  <p class="lede">Dos páginas de trabajo sobre el concurso de Bosque Nativo: una para calcular el puntaje de un proyecto y otra para entender cómo se reparte el dinero entre regiones.</p>
+
+  <section class="cards">
+    <a class="card" href="calculadora.html">
+      <h2>Calculadora del polinomio 2027</h2>
+      <p>Ingresa los datos de un proyecto y compara su puntaje con el polinomio vigente (Res. Ex. N° 76/2022) y con la propuesta 2027.</p>
+      <span class="go">Abrir calculadora →</span>
+    </a>
+    <a class="card" href="simulador.html">
+      <h2>Simulador de cupos regionales</h2>
+      <p>La preasignación regional explicada paso a paso, con los datos reales del concurso 2025 y el monto 2027. Puedes mover la banda o el presupuesto.</p>
+      <span class="go">Abrir simulador →</span>
+    </a>
+  </section>
+</main>
+</body>
+</html>
