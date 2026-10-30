@@ -17,6 +17,7 @@
   --bg:#0F1A17; --surface:#16231F; --surface2:#1E2E29; --ink:#E5ECE6; --muted:#9FB0A8; --line:#2C3E38;
   --forest:#7CC08A; --forest-soft:#20392A; --blue:#8FB0E6; --blue-soft:#1D2C45; --ochre:#E9A060; --ochre-soft:#3A2818; --hoy:#7F8D99; color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
 .wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
 header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:end;justify-content:space-between}
@@ -47,7 +48,13 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:520px){.two{grid-template-columns:1fr}.row{grid-template-columns:1fr}.ctrl{justify-content:start}}
 .rodales{display:flex;flex-direction:column;gap:8px}
-.rodal{display:grid;grid-template-columns:auto 110px minmax(0,1fr) auto;gap:8px;align-items:center}
+.rodal{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.rodal input{width:84px}.rodal select.tf{flex:1 1 190px}.rodal select.pr{flex:0 1 110px}
+.predtbl input[type=number]{width:78px}.predtbl td,.predtbl th{padding:4px 6px}.predtbl select{padding:5px 6px}
+.src{font-size:12px;color:var(--muted);margin:2px 0 0}
+.simbar{background:var(--ochre-soft);color:var(--ochre);border-radius:10px;padding:8px 12px;font-weight:700;font-size:13px;margin:0}
+.tpwarn.soft{color:var(--muted);font-weight:400}
+input:disabled{opacity:.6}
 .rodal span{color:var(--muted);font-size:13px}
 button.lnk{font:inherit;font-size:13.5px;font-weight:600;color:var(--forest);background:none;border:0;padding:4px 0;cursor:pointer;align-self:start}
 button.x{font:inherit;border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:7px;width:30px;height:30px;cursor:pointer}
@@ -127,11 +134,13 @@ footer{font-size:12.5px;color:var(--muted);max-width:90ch}
     <hr>
     <fieldset>
       <legend><i class="dot" style="background:var(--blue)"></i>Terreno</legend>
-      <div class="row"><label>Rodales y prioridad regional<small>Tabla de cada región: alta 100 · media 60 · baja 20. Se pondera por superficie.</small></label><span class="chip new" id="t-PR">—</span></div>
+      <div class="row"><label for="lit">Literal (art. 22 de la Ley)<small>La tabla nacional de tipo forestal cambia por literal y por concurso.</small></label><div class="ctrl"><select id="lit"><option value="a">a) Preservación</option><option value="b">b) Producción no maderera</option><option value="c">c) Producción maderera</option></select></div></div>
+      <div class="row"><label>Rodales: superficie, tipo forestal y prioridad regional<small>Prioridad: tabla de cada región (alta 100 · media 60 · baja 20). Ambos tramos se ponderan por superficie.</small></label><span class="chip new" id="t-PR">—</span></div>
       <div class="rodales" id="rodales"></div>
       <button type="button" class="lnk" id="addRodal">+ Agregar rodal</button>
-      <div class="row"><label for="VE">Variable específica (VE)<small>Tramo de la tabla del literal: especies (a), producción no maderera (b) o estado de desarrollo (c).</small></label><div class="ctrl"><input type="number" id="VE" min="0" max="100" step="5"><span class="chip" id="t-VE">—</span></div></div>
-      <div class="row"><label for="TF">Tipo forestal, tabla nacional<small>Para el puntaje vigente y el puntaje común (fondo común), con el peso de la prioridad regional.</small></label><div class="ctrl"><input type="number" id="TF" min="0" max="100" step="5"><span class="chip" id="t-TF">—</span></div></div>
+      <div class="row"><label for="VE">Variable específica (VE)<small>Tramo de la tabla del literal: especies (a), producción no maderera (b) o estado de desarrollo (c). Bosque irregular (literal c): 75 en otros interesados, 50 en pequeños propietarios.</small></label><div class="ctrl"><input type="number" id="VE" min="0" max="100" step="5"><span class="chip" id="t-VE">—</span></div></div>
+      <div class="row"><label>Tipo forestal, tabla nacional (calculado)<small>Sale de la tabla de la Res. Ex. 76 para el literal y el concurso. Se usa en el puntaje vigente y en el puntaje común.</small></label><span class="chip" id="t-TF">—</span></div>
+      <p class="src" id="srcT"></p>
     </fieldset>
     <hr>
     <fieldset>
@@ -140,17 +149,25 @@ footer{font-size:12.5px;color:var(--muted);max-width:90ch}
       <div class="row"><label for="zona">Zona de la tabla</label><div class="ctrl"><select id="zona"></select></div></div>
       <div class="row"><label for="VPI">Pueblos indígenas</label><div class="ctrl"><select id="VPI"><option value="100">Pertenece</option><option value="0">No pertenece</option><option value="75">Colectivo mixto</option></select><span class="chip" id="t-VPI">—</span></div></div>
       <div class="row" id="rowGP"><label for="GP">Género del propietario</label><div class="ctrl"><select id="GP"><option value="100">Mujer</option><option value="50">No mujer</option><option value="75">Colectivo, mujeres &lt; 50%</option><option value="100b">Colectivo, mujeres &gt; 50%</option></select><span class="chip" id="t-GP">—</span></div></div>
-      <div class="row" id="rowVPS"><label for="predios">N° de predios (postulación colectiva)<small>1 = postulación individual.</small></label><div class="ctrl"><input type="number" id="predios" min="1" step="1"><span class="chip" id="t-VPS">—</span></div></div>
+      <div class="row" id="rowVPS"><label>Tipo de postulación<small>Colectiva: al menos dos predios de distintos propietarios. Los predios se ingresan en el bloque del proyecto.</small></label><div class="ctrl"><div class="seg" id="colec"><button type="button" data-v="Individual">Individual</button><button type="button" data-v="Colectiva">Colectiva</button></div><span class="chip" id="t-VPS">—</span></div></div>
+      <p class="src" id="srcI"></p>
     </fieldset>
     <hr>
     <fieldset>
       <legend><i class="dot" style="background:var(--ochre)"></i>Proyecto</legend>
-      <div class="row"><label for="jornadas">Mano de obra (jornadas totales)<small id="moHint"></small></label><div class="ctrl"><input type="number" id="jornadas" min="0" step="10"><span class="chip" id="t-MO">—</span></div></div>
+      <div id="predBox" hidden>
+        <div class="row"><label>Predios del colectivo<small>La Res. Ex. 76 calcula estas variables predio por predio: mano de obra y continuidad, promedio ponderado por superficie; financiamiento, promedio simple (D.O. págs. 6 y 7).</small></label><span></span></div>
+        <div class="tbl"><table class="predtbl"><thead><tr><th>Predio</th><th>Sup. (ha)</th><th>Jornadas</th><th>Aporte %</th><th>Continuidad</th><th></th></tr></thead><tbody id="predBody"></tbody></table></div>
+        <button type="button" class="lnk" id="addPred">+ Agregar predio</button>
+        <p class="note" id="predRes"></p>
+      </div>
+      <div class="row" id="rowMO"><label for="jornadas">Mano de obra (jornadas totales)<small id="moHint"></small></label><div class="ctrl"><input type="number" id="jornadas" min="0" step="10"><span class="chip" id="t-MO">—</span></div></div>
       <div class="row"><label>Bosque quemado<small>Rodal quemado antes del cierre. Cuenta en todos los puntajes.</small></label><div class="seg" id="quemado"><button type="button" data-v="Sí">Sí</button><button type="button" data-v="No">No</button></div></div>
       <div class="row"><label>Urgencia regional<small>Plaga o enfermedad, sequía, castor o degradación, si la región la eligió. En el fondo común sólo cuenta el incendio. Basta un daño para el tramo máximo: no se suman.</small></label><div class="seg" id="urgencia"><button type="button" data-v="Sí">Sí</button><button type="button" data-v="No">No</button></div></div>
-      <div class="row"><label>Continuidad del plan (VASOB)<small>Actividades secuenciales o complementarias a otras ya bonificadas.</small></label><div class="seg" id="vasob"><button type="button" data-v="Sí">Sí</button><button type="button" data-v="No">No</button></div></div>
+      <div class="row" id="rowVAS"><label>Continuidad del plan (VASOB)<small>Actividades secuenciales o complementarias a otras ya bonificadas.</small></label><div class="seg" id="vasob"><button type="button" data-v="Sí">Sí</button><button type="button" data-v="No">No</button></div></div>
       <div class="row"><label for="utm">Monto solicitado (UTM totales)<small id="vmbsHint"></small></label><div class="ctrl"><input type="number" id="utm" min="0" step="1"><span class="chip" id="t-VMBS">—</span></div></div>
-      <div class="row"><label for="aporte">Aporte del interesado (% del monto bonificable)<small id="vfciHint"></small></label><div class="ctrl"><input type="number" id="aporte" min="0" max="100" step="1"><span class="chip" id="t-VFCI">—</span></div></div>
+      <div class="row" id="rowVFCI"><label for="aporte">Aporte del interesado (% del monto bonificable)<small id="vfciHint"></small></label><div class="ctrl"><input type="number" id="aporte" min="0" max="100" step="1"><span class="chip" id="t-VFCI">—</span></div></div>
+      <p class="src" id="srcP"></p>
     </fieldset>
     <hr>
     <div style="display:flex;flex-wrap:wrap;gap:10px">
@@ -162,6 +179,7 @@ footer{font-size:12.5px;color:var(--muted);max-width:90ch}
   </form>
 
   <section class="panel sticky" aria-live="polite">
+    <p class="simbar" id="simbar" hidden>Simulación: los pesos son distintos de la propuesta 2027.</p>
     <div class="scores">
       <div class="score"><span>Vigente</span><b id="s-vig">—</b><span>Res. Ex. 76/2022</span></div>
       <div class="score main"><span>Puntaje 2027</span><b id="s-27">—</b><span>orden dentro del cupo</span></div>
@@ -186,6 +204,7 @@ footer{font-size:12.5px;color:var(--muted);max-width:90ch}
   <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline">
     <h2 style="margin:0;font-size:20px">Comparación de proyectos</h2>
     <span class="note">Haz clic en un proyecto para editarlo. Se guardan sólo en este navegador. Los seis primeros son ejemplos ficticios.</span>
+    <button type="button" class="btn ghost" id="csv" hidden>Descargar lista (CSV)</button>
   </div>
   <div class="tbl">
     <table class="lista" id="lista">
@@ -197,13 +216,13 @@ footer{font-size:12.5px;color:var(--muted);max-width:90ch}
 </section>
 
 <details class="panel" id="paramsBox">
-  <summary>Parámetros 2027 (editables)</summary>
-  <p class="note">Coeficientes en la notación de las bases. Cada grupo debe sumar 1,00. Los cambios se aplican al instante a todos los proyectos.</p>
+  <summary>Parámetros 2027 (pesos tentativos de la propuesta)</summary>
+  <p class="note">Coeficientes en la notación de las bases. Están bloqueados: son los de la propuesta. Para probar otros, usa «Simular otros pesos»; la calculadora lo avisará arriba del puntaje. Cada grupo debe sumar 1,00.</p>
   <div class="params" id="params"></div>
-  <div><button type="button" class="btn ghost" id="resetParams">Volver a los valores propuestos</button></div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px"><button type="button" class="btn warn" id="simParams">Simular otros pesos</button><button type="button" class="btn ghost" id="resetParams">Volver a los valores propuestos</button></div>
 </details>
 
-<footer>Fuentes: Res. Ex. N° 76 de 2022 del Ministerio de Agricultura (Diario Oficial, 5 de marzo de 2022), fórmulas y tablas vigentes; propuesta: informe «Rediseño del FCBN · nuevo concurso 2027-2028» (Gerencia de Bosques y Cambio Climático, octubre de 2026), Tablas 12 y 13. Pesos 2027 tentativos. El tamaño predial de una postulación colectiva se divide por el número de predios; el monto solicitado colectivo, también.</footer>
+<footer>Fuentes: Res. Ex. N° 76 de 2022 del Ministerio de Agricultura (Diario Oficial, 5 de marzo de 2022), fórmulas y tablas vigentes; propuesta: informe «Rediseño del FCBN · nuevo concurso 2027-2028» (Gerencia de Bosques y Cambio Climático, octubre de 2026), Tablas 12 y 13. Pesos 2027 tentativos. Postulación colectiva: el tamaño predial y el monto solicitado se dividen por el número de predios; la mano de obra y la continuidad se promedian por superficie, y el financiamiento se calcula por predio y se promedia.</footer>
 </div>
 
 <script>
@@ -217,46 +236,90 @@ const BASE = {
       fpm:{Aprobado:1,Ingresado:.80,'Sin plan':.60}}
 };
 const PRT = {Alta:100, Media:60, Baja:20};
+// Tabla nacional de tipo forestal, Res. Ex. N° 76/2022 (D.O. pág. 3, PPF; págs. 8-9, OI). Sin valor = no figura en la tabla del literal (0).
+const ASPP = 'Área protegida privada catastrada (literal a)';
+const TIPOS = ['Alerce','Araucaria','Ciprés de la Cordillera','Ciprés de las Guaitecas','Coihue de Magallanes','Coihue-Raulí-Tepa','Esclerófilo','Lenga','Palma Chilena','Roble-Hualo','Roble-Raulí-Coihue','Siempreverde','Formación xerofítica de alto valor ecológico',ASPP];
+const LA = {'Formación xerofítica de alto valor ecológico':100,'Roble-Hualo':100,'Esclerófilo':100,'Alerce':100,'Ciprés de la Cordillera':100,'Araucaria':100,'Palma Chilena':100,[ASPP]:100,
+  'Lenga':75,'Siempreverde':75,'Roble-Raulí-Coihue':75,'Coihue-Raulí-Tepa':75,'Ciprés de las Guaitecas':75,'Coihue de Magallanes':75};
+const LB = {'Roble-Hualo':100,'Roble-Raulí-Coihue':100,'Esclerófilo':100,'Coihue-Raulí-Tepa':75,'Siempreverde':50,'Lenga':50,'Coihue de Magallanes':25,'Ciprés de las Guaitecas':25,'Ciprés de la Cordillera':25};
+const TFTAB = {
+  PPF:{a:LA, b:LB, c:{'Roble-Raulí-Coihue':100,'Siempreverde':100,'Lenga':100,'Esclerófilo':75,'Roble-Hualo':75,'Coihue-Raulí-Tepa':75,'Coihue de Magallanes':50,'Ciprés de las Guaitecas':25}},
+  OI:{a:LA, b:LB, c:{'Roble-Raulí-Coihue':100,'Siempreverde':100,'Lenga':100,'Esclerófilo':100,'Roble-Hualo':75,'Coihue-Raulí-Tepa':75,'Coihue de Magallanes':75,'Ciprés de las Guaitecas':50}}
+};
 let P = JSON.parse(JSON.stringify(BASE));
+let simMode = false;
 const LS = 'fcbn-calc-v1';
 const ZONAS = {
   PPF:[['centro','Regiones V a X, XIV y RM'],['norte','Regiones I a IV y XV'],['austral','XI, XII, Palena y Lonquimay']],
   OI:[['general','Resto del país'],['austral','Aysén y Magallanes'],['comunidad','Comunidad agrícola']]
 };
+const SRC = {
+  T:{PPF:'Tablas: Res. Ex. N° 76/2022, D.O. págs. 2 y 3.', OI:'Tablas: Res. Ex. N° 76/2022, D.O. págs. 8 y 9.'},
+  I:{PPF:'Tablas: Res. Ex. N° 76/2022, D.O. págs. 4 y 7.', OI:'Tablas: Res. Ex. N° 76/2022, D.O. págs. 9 y 10.'},
+  P:{PPF:'Tablas: Res. Ex. N° 76/2022, D.O. págs. 5 a 7. Factor del plan: propuesta 2027.', OI:'Tablas: Res. Ex. N° 76/2022, D.O. págs. 10 a 12. Factor del plan: propuesta 2027.'}
+};
+const rd = (ha,tf,pr) => ({ha,tf,pr});
 const EJ = [
- {nombre:'Ejemplo A',region:'Región X',conc:'OI',plan:'Aprobado',TF:75,rod:[[20,'Alta']],VE:50,TPha:300,zona:'general',VPI:'0',GP:'50',predios:1,jornadas:1000,quemado:'No',urgencia:'No',vasob:'Sí',utm:142,aporte:5},
- {nombre:'Ejemplo B',region:'Región X',conc:'OI',plan:'Sin plan',TF:100,rod:[[30,'Media']],VE:100,TPha:500,zona:'general',VPI:'100',GP:'100',predios:1,jornadas:2000,quemado:'Sí',urgencia:'No',vasob:'Sí',utm:213,aporte:0},
- {nombre:'Ejemplo C',region:'Región X',conc:'OI',plan:'Ingresado',TF:50,rod:[[15,'Baja']],VE:75,TPha:200,zona:'general',VPI:'0',GP:'100',predios:1,jornadas:1200,quemado:'No',urgencia:'Sí',vasob:'Sí',utm:106,aporte:25},
- {nombre:'Ejemplo D',region:'Región Y',conc:'OI',plan:'Aprobado',TF:75,rod:[[10,'Alta'],[5,'Baja']],VE:75,TPha:150,zona:'general',VPI:'0',GP:'50',predios:1,jornadas:900,quemado:'No',urgencia:'No',vasob:'No',utm:75,aporte:0},
- {nombre:'Ejemplo E',region:'Región X',conc:'PPF',plan:'Aprobado',TF:75,rod:[[5,'Alta']],VE:100,TPha:8,zona:'centro',VPI:'0',GP:'50',predios:1,jornadas:200,quemado:'No',urgencia:'No',vasob:'No',utm:12,aporte:0},
- {nombre:'Ejemplo F',region:'Región X',conc:'PPF',plan:'Sin plan',TF:100,rod:[[8,'Media']],VE:100,TPha:9,zona:'centro',VPI:'100',GP:'50',predios:3,jornadas:200,quemado:'Sí',urgencia:'No',vasob:'Sí',utm:75,aporte:0}
+ {nombre:'Ejemplo 1',region:'Región X',conc:'OI',plan:'Aprobado',lit:'c',rod:[rd(20,'Coihue-Raulí-Tepa','Alta')],VE:50,TPha:300,zona:'general',VPI:'0',GP:'50',col:'Individual',pred:[],jornadas:1000,quemado:'No',urgencia:'No',vasob:'Sí',utm:142,aporte:5},
+ {nombre:'Ejemplo 2',region:'Región X',conc:'OI',plan:'Sin plan',lit:'c',rod:[rd(30,'Roble-Raulí-Coihue','Media')],VE:100,TPha:500,zona:'general',VPI:'100',GP:'100',col:'Individual',pred:[],jornadas:2000,quemado:'Sí',urgencia:'No',vasob:'Sí',utm:213,aporte:0},
+ {nombre:'Ejemplo 3',region:'Región X',conc:'OI',plan:'Ingresado',lit:'c',rod:[rd(15,'Ciprés de las Guaitecas','Baja')],VE:75,TPha:200,zona:'general',VPI:'0',GP:'100',col:'Individual',pred:[],jornadas:1200,quemado:'No',urgencia:'Sí',vasob:'Sí',utm:106,aporte:25},
+ {nombre:'Ejemplo 4',region:'Región Y',conc:'OI',plan:'Aprobado',lit:'c',rod:[rd(10,'Roble-Hualo','Alta'),rd(5,'Coihue-Raulí-Tepa','Baja')],VE:75,TPha:150,zona:'general',VPI:'0',GP:'50',col:'Individual',pred:[],jornadas:900,quemado:'No',urgencia:'No',vasob:'No',utm:75,aporte:0},
+ {nombre:'Ejemplo 5',region:'Región X',conc:'PPF',plan:'Aprobado',lit:'c',rod:[rd(5,'Esclerófilo','Alta')],VE:100,TPha:8,zona:'centro',VPI:'0',GP:'50',col:'Individual',pred:[],jornadas:200,quemado:'No',urgencia:'No',vasob:'No',utm:12,aporte:0},
+ {nombre:'Ejemplo 6',region:'Región X',conc:'PPF',plan:'Sin plan',lit:'c',rod:[rd(8,'Roble-Raulí-Coihue','Media')],VE:100,TPha:9,zona:'centro',VPI:'100',GP:'50',col:'Colectiva',
+   pred:[{ha:3,jor:70,ap:0,vas:'Sí'},{ha:3,jor:70,ap:0,vas:'Sí'},{ha:2,jor:60,ap:0,vas:'Sí'}],jornadas:200,quemado:'Sí',urgencia:'No',vasob:'Sí',utm:75,aporte:0}
 ];
+// Convierte proyectos guardados con el formato anterior.
+function norm(c){
+  c = JSON.parse(JSON.stringify(c));
+  const old = /^Ejemplo ([A-F])$/.exec(c.nombre||'');
+  if (old) return JSON.parse(JSON.stringify(EJ['ABCDEF'.indexOf(old[1])]));
+  if (!c.lit) c.lit = 'c';
+  c.rod = (c.rod||[]).map(r => Array.isArray(r) ? {ha:r[0], tf:'', pr:r[1]} : r);
+  if (!c.rod.length) c.rod=[rd(5,'','Media')];
+  if (!c.col){
+    const n = Math.max(1, +c.predios||1);
+    c.col = (c.conc==='PPF' && n>1) ? 'Colectiva' : 'Individual';
+    const ha = c.rod.reduce((a,r)=>a+(+r.ha||0),0);
+    c.pred = c.col==='Colectiva' ? Array.from({length:n},()=>({ha:+(ha/n).toFixed(2), jor:Math.round((+c.jornadas||0)/n), ap:+c.aporte||0, vas:c.vasob||'No'})) : [];
+  }
+  if (!Array.isArray(c.pred)) c.pred=[];
+  delete c.predios;
+  return c;
+}
 let lista = [], sel = 0;
-try { const s = JSON.parse(localStorage.getItem(LS)||'null'); if (s && Array.isArray(s.lista) && s.lista.length) { lista = s.lista; if (s.P) P = s.P; } } catch(e) {}
+try { const s = JSON.parse(localStorage.getItem(LS)||'null'); if (s && Array.isArray(s.lista) && s.lista.length) { lista = s.lista.map(norm); if (s.P) P = s.P; } } catch(e) {}
 if (!lista.length) lista = JSON.parse(JSON.stringify(EJ));
 let cur = JSON.parse(JSON.stringify(lista[0]));
 const save = () => { try { localStorage.setItem(LS, JSON.stringify({lista, P})); } catch(e) {} };
 const $ = id => document.getElementById(id);
 const fmt = (n,d=1) => (n===null||n===undefined||isNaN(n)) ? '—' : n.toLocaleString('es-CL',{minimumFractionDigits:d,maximumFractionDigits:d});
+const esc = t => String(t??'').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+const sameP = () => JSON.stringify(P)===JSON.stringify(BASE);
 
 // ---------- tramos (Res. Ex. 76/2022)
-function tTP(c){const ha=+c.TPha||0, pr=Math.max(1,+c.predios||1), z=c.zona;
+const isCol = c => c.conc==='PPF' && c.col==='Colectiva' && (c.pred||[]).length>=2;
+const nPred = c => isCol(c) ? c.pred.length : 1;
+function tTP(c){const ha=+c.TPha||0, z=c.zona;
   if (c.conc==='OI'){ if (z==='comunidad') return 100; return ha <= (z==='austral'?1000:700) ? 100 : 50; }
-  const h = ha/pr;
+  const h = ha/nPred(c);
   const T = z==='austral' ? [[45,100],[100,80],[220,60],[580,40],[800,20]] : [[10,100],[20,80],[40,60],[80,40],[z==='norte'?500:200,20]];
   for (const [lim,v] of T) if (h<=lim) return v; return 0;}
-function tMO(c){const j=+c.jornadas||0;
-  if (c.conc==='OI') return j>=3000?100:j>=1500?80:60;
-  return j>=1000?100:j>=750?80:j>=500?60:j>=250?40:20;}
-function tVMBS(c){if(c.conc==='OI'){const u=+c.utm||0; return u<=350?100:u<=700?50:20;} const u=(+c.utm||0)/Math.max(1,+c.predios||1); return u<=15?100:u<=30?80:u<=50?60:u<=90?40:20;}
-function tVFCI(c){const a=+c.aporte||0; if(c.conc==='OI') return a>=30?100:a>=10?50:20; return a>=50?100:a>=30?75:a>=20?50:a>=10?25:15;}
-function tVPS(c){const n=+c.predios||1; return n>=10?100:n>=7?75:n>=4?50:n>=2?25:0;}
-function tPR(c){let s=0,h=0; for (const [ha,pr] of c.rod){const x=+ha||0; s+=x*(PRT[pr]??20); h+=x;} return h? s/h : 0;}
+const moTab = (conc,j) => conc==='OI' ? (j>=3000?100:j>=1500?80:60) : (j>=1000?100:j>=750?80:j>=500?60:j>=250?40:20);
+const fciTab = (conc,a) => conc==='OI' ? (a>=30?100:a>=10?50:20) : (a>=50?100:a>=30?75:a>=20?50:a>=10?25:15);
+function wavg(rows, f){ const h=rows.reduce((a,r)=>a+(+r.ha||0),0); return h ? rows.reduce((a,r)=>a+(+r.ha||0)*f(r),0)/h : rows.reduce((a,r)=>a+f(r),0)/rows.length; }
+function tMO(c){ return isCol(c) ? wavg(c.pred, r=>moTab('PPF', +r.jor||0)) : moTab(c.conc, +c.jornadas||0); }
+function tVASOB(c){ return isCol(c) ? wavg(c.pred, r=>r.vas==='Sí'?100:0) : (c.vasob==='Sí'?100:0); }
+function tVFCI(c){ return isCol(c) ? c.pred.reduce((a,r)=>a+fciTab('PPF',+r.ap||0),0)/c.pred.length : fciTab(c.conc, +c.aporte||0); }
+function tVMBS(c){ if(c.conc==='OI'){const u=+c.utm||0; return u<=350?100:u<=700?50:20;} const u=(+c.utm||0)/nPred(c); return u<=15?100:u<=30?80:u<=50?60:u<=90?40:20;}
+function tVPS(c){ if (!isCol(c)) return 0; const n=c.pred.length; return n>=10?100:n>=7?75:n>=4?50:n>=2?25:0;}
+function tPR(c){ return wavg(c.rod, r=>PRT[r.pr]??20); }
+const tfNac = (c,tf) => (TFTAB[c.conc][c.lit]||{})[tf] ?? 0;
+function tTF(c){ return wavg(c.rod, r => r.tf ? tfNac(c,r.tf) : Math.max(0,Math.min(100,+c.TF||0))); }
 const clamp = v => Math.max(0,Math.min(100,+v||0));
 function tramos(c){
-  return {TF:clamp(c.TF), PR:tPR(c), VE:clamp(c.VE), TP:tTP(c), VPI:+String(c.VPI).replace('b',''), GP:c.conc==='OI'?+String(c.GP).replace('b',''):0,
+  return {TF:tTF(c), PR:tPR(c), VE:clamp(c.VE), TP:tTP(c), VPI:+String(c.VPI).replace('b',''), GP:c.conc==='OI'?+String(c.GP).replace('b',''):0,
     VPS:c.conc==='PPF'?tVPS(c):0, PM:c.plan==='Aprobado'?100:0, MO:tMO(c), BQ:c.quemado==='Sí'?100:0, BQD:(c.quemado==='Sí'||c.urgencia==='Sí')?100:0,
-    VASOB:c.vasob==='Sí'?100:0, VMBS:tVMBS(c), VFCI:tVFCI(c)};
+    VASOB:tVASOB(c), VMBS:tVMBS(c), VFCI:tVFCI(c)};
 }
 function pesos(k){ // puntos por variable
   return {TF:100*k.VT*k.TF, PR:100*k.VT*k.PR, VE:100*k.VT*k.VE, TP:100*k.VI*k.TP, VPI:100*k.VI*k.VPI, GP:100*k.VI*k.GP, VPS:100*k.VPS,
@@ -270,9 +333,9 @@ function calc(c){
   for (const k in pp) pp[k]/=100;
   const vig = Object.values(ph).reduce((a,b)=>a+b,0);
   const T = pp.PR+pp.VE, I = pp.TP+pp.VPI+pp.GP+pp.VPS, Pr = pp.MO+pp.BQ+pp.VASOB+pp.VMBS+pp.VFCI;
-  const suma=T+I+Pr, f=P[c.conc].fpm[c.plan] ?? 1, div = 1 - wp.PR/100;
+  const suma=T+I+Pr, f=P[c.conc].fpm[c.plan] ?? 1;
   const comun = (suma - pp.PR + t.TF*wp.PR/100 - (t.BQD-t.BQ)*wp.BQ/100)*f;
-  return {t,wh,wp,ph,pp,vig,T,I,Pr,suma,f,p27:suma*f,comun,div};
+  return {t,wh,wp,ph,pp,vig,T,I,Pr,suma,f,p27:suma*f,comun};
 }
 
 // ---------- form
@@ -282,57 +345,93 @@ function drawRodales(){
   const box=$('rodales'); box.innerHTML='';
   cur.rod.forEach((r,i)=>{
     const d=document.createElement('div'); d.className='rodal';
-    d.innerHTML=`<span>Rodal ${i+1}</span><input type="number" id="rha${i}" min="0" step="0.5" aria-label="Hectáreas del rodal ${i+1}" value="${r[0]}"><span class="hint">ha</span><select id="rpr${i}" aria-label="Prioridad del rodal ${i+1}"><option>Alta</option><option>Media</option><option>Baja</option></select><button type="button" class="x" aria-label="Quitar rodal ${i+1}">×</button>`;
+    const opts = (r.tf?'':'<option value="">— Tipo forestal —</option>') + TIPOS.map(t=>`<option>${esc(t)}</option>`).join('');
+    d.innerHTML=`<span class="hint">Rodal ${i+1}</span><input type="number" min="0" step="0.5" aria-label="Hectáreas del rodal ${i+1}" value="${esc(r.ha)}"><span class="hint">ha</span><select class="tf" aria-label="Tipo forestal del rodal ${i+1}">${opts}</select><select class="pr" aria-label="Prioridad regional del rodal ${i+1}"><option>Alta</option><option>Media</option><option>Baja</option></select><span class="chip" title="Tramo de la tabla nacional">—</span><button type="button" class="x" aria-label="Quitar rodal ${i+1}">×</button>`;
     box.appendChild(d);
-    d.querySelector('select').value=r[1];
-    d.querySelector('input').addEventListener('input',e=>{cur.rod[i][0]=e.target.value; update();});
-    d.querySelector('select').addEventListener('change',e=>{cur.rod[i][1]=e.target.value; update();});
+    d.querySelector('select.tf').value=r.tf||''; d.querySelector('select.pr').value=r.pr;
+    d.querySelector('input').addEventListener('input',e=>{cur.rod[i].ha=e.target.value; update();});
+    d.querySelector('select.tf').addEventListener('change',e=>{cur.rod[i].tf=e.target.value; drawRodales(); update();});
+    d.querySelector('select.pr').addEventListener('change',e=>{cur.rod[i].pr=e.target.value; update();});
     d.querySelector('.x').addEventListener('click',()=>{ if (cur.rod.length>1){cur.rod.splice(i,1); drawRodales(); update();} });
   });
 }
-function load(c){
-  cur = JSON.parse(JSON.stringify(c));
-  for (const k of ['nombre','region','TF','VE','TPha','VPI','GP','predios','jornadas','utm','aporte']) $(k).value = cur[k] ?? '';
-  ['c-PPF','c-OI'].forEach(id=>$(id).setAttribute('aria-pressed', String($(id).dataset.conc===cur.conc)));
-  seg('plan',cur.plan); seg('quemado',cur.quemado); seg('urgencia',cur.urgencia); seg('vasob',cur.vasob);
-  fillZonas(); drawRodales(); update();
+function drawPred(){
+  const tb=$('predBody'); tb.innerHTML='';
+  cur.pred.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i+1}</td><td><input type="number" min="0" step="0.5" data-k="ha" aria-label="Superficie del predio ${i+1}" value="${esc(r.ha)}"></td><td><input type="number" min="0" step="10" data-k="jor" aria-label="Jornadas del predio ${i+1}" value="${esc(r.jor)}"></td><td><input type="number" min="0" max="100" step="1" data-k="ap" aria-label="Aporte del predio ${i+1}" value="${esc(r.ap)}"></td><td><select data-k="vas" aria-label="Continuidad del predio ${i+1}"><option>Sí</option><option>No</option></select></td><td><button type="button" class="x" aria-label="Quitar predio ${i+1}">×</button></td>`;
+    tb.appendChild(tr);
+    tr.querySelector('select').value=r.vas||'No';
+    tr.querySelectorAll('input,select').forEach(el=>el.addEventListener(el.tagName==='SELECT'?'change':'input',e=>{cur.pred[i][e.target.dataset.k]=e.target.value; update();}));
+    tr.querySelector('.x').addEventListener('click',()=>{ if (cur.pred.length>2){cur.pred.splice(i,1); drawPred(); update();} });
+  });
 }
-['nombre','region','TF','VE','TPha','predios','jornadas','utm','aporte'].forEach(k=>$(k).addEventListener('input',e=>{cur[k]=e.target.value; update();}));
+function load(c){
+  cur = norm(c);
+  for (const k of ['nombre','region','VE','TPha','VPI','GP','jornadas','utm','aporte']) $(k).value = cur[k] ?? '';
+  $('lit').value = cur.lit;
+  ['c-PPF','c-OI'].forEach(id=>$(id).setAttribute('aria-pressed', String($(id).dataset.conc===cur.conc)));
+  seg('plan',cur.plan); seg('quemado',cur.quemado); seg('urgencia',cur.urgencia); seg('vasob',cur.vasob); seg('colec',cur.col);
+  fillZonas(); drawRodales(); drawPred(); update();
+}
+['nombre','region','VE','TPha','jornadas','utm','aporte'].forEach(k=>$(k).addEventListener('input',e=>{cur[k]=e.target.value; update();}));
 ['VPI','GP','zona'].forEach(k=>$(k).addEventListener('change',e=>{cur[k]=e.target.value; update();}));
+$('lit').addEventListener('change',e=>{cur.lit=e.target.value; drawRodales(); update();});
 [['plan','plan'],['quemado','quemado'],['urgencia','urgencia'],['vasob','vasob']].forEach(([id,k])=>$(id).addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return; cur[k]=b.dataset.v; seg(id,cur[k]); update();}));
-document.querySelectorAll('[data-conc]').forEach(b=>b.addEventListener('click',()=>{cur.conc=b.dataset.conc; document.querySelectorAll('[data-conc]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); fillZonas(); update();}));
-$('addRodal').addEventListener('click',()=>{ if (cur.rod.length<6){ cur.rod.push([5,'Media']); drawRodales(); update(); } });
+$('colec').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return; cur.col=b.dataset.v; seg('colec',cur.col);
+  if (cur.col==='Colectiva' && cur.pred.length<2){ cur.pred=[{ha:5,jor:Math.round((+cur.jornadas||0)/2),ap:+cur.aporte||0,vas:cur.vasob},{ha:5,jor:Math.round((+cur.jornadas||0)/2),ap:+cur.aporte||0,vas:cur.vasob}]; }
+  drawPred(); update();});
+document.querySelectorAll('[data-conc]').forEach(b=>b.addEventListener('click',()=>{cur.conc=b.dataset.conc; document.querySelectorAll('[data-conc]').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); fillZonas(); drawRodales(); update();}));
+$('addRodal').addEventListener('click',()=>{ if (cur.rod.length<6){ cur.rod.push(rd(5,cur.rod[0]?.tf||'','Media')); drawRodales(); update(); } });
+$('addPred').addEventListener('click',()=>{ if (cur.pred.length<30){ cur.pred.push({ha:5,jor:0,ap:0,vas:'No'}); drawPred(); update(); } });
 
 // ---------- render
-const LAB = {PR:'Prioridad regional', TF:'Tipo forestal nacional', VE:'Variable específica', TP:'Tamaño del predio', VPI:'Pueblos indígenas', GP:'Género', VPS:'Postulación colectiva', PM:'Plan de manejo', MO:'Mano de obra', BQ:'Bosque quemado o dañado', VASOB:'Continuidad del plan', VMBS:'Monto solicitado', VFCI:'Financiamiento propio'};
+const LAB = {PR:'Prioridad regional', TF:'Tipo forestal nacional', VE:'Variable específica', TP:'Tamaño del predio', VPI:'Pueblos indígenas', GP:'Género', VPS:'Postulación colectiva', PM:'Plan de manejo', MO:'Mano de obra', BQ:'Bosque quemado (hoy) · o dañado (2027)', VASOB:'Continuidad del plan', VMBS:'Monto solicitado', VFCI:'Financiamiento propio'};
+const INFO = 'si además cumple los demás requisitos: activos ≤ 3.500 UF, ingreso principal agrícola o forestal y trabaja la tierra.';
+function sizeWarn(){
+  const isOI=cur.conc==='OI', ha=+cur.TPha||0; let msg='', strong=false;
+  if (isOI && cur.zona==='comunidad'){ msg='Las comunidades agrícolas se consideran pequeños propietarios (Ley 20.283, art. 2 N° 17): revisa en qué concurso postula.'; strong=true; }
+  else if (isOI && cur.zona==='austral'){ if (ha>0 && ha<=800) msg=`Con ${fmt(ha,0)} ha podría ser pequeño propietario (límite 800 ha en Aysén y Magallanes) ${INFO}`; }
+  else if (isOI){
+    if (ha>0 && ha<=200) msg=`Con ${fmt(ha,0)} ha podría ser pequeño propietario (límite 200 ha; 500 ha en las regiones I a IV y XV; 800 ha en Lonquimay, Palena, Aysén y Magallanes) ${INFO} Si los cumple, postula al concurso de pequeños propietarios.`;
+    else if (ha>200 && ha<=500) msg=`Si el predio está en las regiones I a IV o XV (límite 500 ha), o en Lonquimay o Palena (800 ha), podría ser pequeño propietario ${INFO}`;
+    else if (ha>500 && ha<=800) msg=`Si el predio está en Lonquimay o Palena (límite 800 ha), podría ser pequeño propietario ${INFO}`;
+  } else {
+    const lim = cur.zona==='norte' ? 500 : cur.zona==='austral' ? 800 : 200; const pp = ha/nPred(cur);
+    if (pp>lim){ msg=`Supera el límite de pequeño propietario para esta zona (${lim} ha${nPred(cur)>1?' por predio':''}): debe postular a otros interesados.`; strong=true; }
+  }
+  const w=$('tpWarn'); w.textContent=msg; w.hidden=!msg; w.className = 'tpwarn' + (strong?'':' soft');
+}
 function update(){
-  const r = calc(cur), t=r.t, isOI=cur.conc==='OI';
+  const r = calc(cur), t=r.t, isOI=cur.conc==='OI', col=isCol(cur);
   $('rowGP').hidden = !isOI; $('rowVPS').hidden = isOI;
+  $('predBox').hidden = !(cur.conc==='PPF' && cur.col==='Colectiva');
+  $('rowMO').hidden = $('rowVAS').hidden = $('rowVFCI').hidden = (cur.conc==='PPF' && cur.col==='Colectiva');
+  $('srcT').textContent=SRC.T[cur.conc]; $('srcI').textContent=SRC.I[cur.conc]; $('srcP').textContent=SRC.P[cur.conc];
   $('tpHint').textContent = isOI ? '≤700 ha: 100 · más: 50 (Aysén y Magallanes: 1.000 ha; comunidad agrícola: 100)' : 'Tabla por zona; en postulación colectiva se divide por el número de predios.';
   $('vmbsHint').textContent = isOI ? 'Total del proyecto. ≤350: 100 · ≤700: 50 · más: 20' : 'Total del proyecto (colectiva: ÷ n° de predios). ≤15: 100 · ≤30: 80 · ≤50: 60 · ≤90: 40 · más: 20';
   $('vfciHint').textContent = isOI ? '≥30: 100 · ≥10: 50 · menos: 20' : '≥50: 100 · ≥30: 75 · ≥20: 50 · ≥10: 25 · menos: 15';
-  { const ha=+cur.TPha||0, w=$('tpWarn'); let msg='';
-    if (isOI && cur.zona==='comunidad') msg='Las comunidades agrícolas se consideran pequeños propietarios (Ley 20.283, art. 2 N° 17): revisa en qué concurso postula.';
-    else if (isOI) { const lim = cur.zona==='austral' ? 800 : 200; if (ha>0 && ha<=lim) msg=`Con ${fmt(ha,0)} ha podría ser pequeño propietario (límite ${lim} ha${cur.zona==='austral'?'':'; 500 ha en las regiones I a IV y XV'}) si además cumple los demás requisitos: activos ≤ 3.500 UF, ingreso principal agrícola o forestal y trabaja la tierra. Si los cumple, postula al concurso de pequeños propietarios.`;
-      else if (cur.zona!=='austral' && ha>200 && ha<=500) msg=`Si el predio está entre las regiones I y IV o en la XV (límite 500 ha), podría ser pequeño propietario si cumple los demás requisitos: activos ≤ 3.500 UF, ingreso principal agrícola o forestal y trabaja la tierra.`; }
-    else { const lim = cur.zona==='norte' ? 500 : cur.zona==='austral' ? 800 : 200; const pp = ha/Math.max(1,+cur.predios||1); if (pp>lim) msg=`Supera el límite de pequeño propietario para esta zona (${lim} ha${(+cur.predios||1)>1?' por predio':''}): debe postular a otros interesados.`; }
-    w.textContent=msg; w.hidden=!msg; }
   $('moHint').textContent = isOI ? '≥3.000: 100 · ≥1.500: 80 · menos: 60' : '≥1.000: 100 · ≥750: 80 · ≥500: 60 · ≥250: 40 · menos: 20';
+  sizeWarn();
+  $('rodales').querySelectorAll('.rodal').forEach((d,i)=>{ const rr=cur.rod[i]; d.querySelector('.chip').textContent = rr && rr.tf ? 'nac. '+fmt(tfNac(cur,rr.tf),0) : 'nac. —'; });
   const chips = {PR:t.PR,VE:t.VE,TF:t.TF,TP:t.TP,VPI:t.VPI,GP:t.GP,VPS:t.VPS,MO:t.MO,VMBS:t.VMBS,VFCI:t.VFCI};
   for (const k in chips) $('t-'+k).textContent = 'tramo ' + fmt(chips[k],0);
+  if (cur.conc==='PPF' && cur.col==='Colectiva') $('predRes').textContent = col ? `${cur.pred.length} predios → mano de obra tramo ${fmt(t.MO,1)} · continuidad ${fmt(t.VASOB,1)} · financiamiento ${fmt(t.VFCI,1)} · postulación colectiva ${fmt(t.VPS,0)}` : 'Una postulación colectiva necesita al menos dos predios.';
+  $('simbar').hidden = sameP();
   $('s-vig').textContent = fmt(r.vig); $('s-27').textContent = fmt(r.p27); $('s-com').textContent = fmt(r.comun);
   $('formula').innerHTML = `<em>${fmt(r.f,2)}</em> × (${fmt(r.T)} terreno + ${fmt(r.I)} interesado + ${fmt(r.Pr)} proyecto) = <b>${fmt(r.p27)}</b>`;
   const lost = r.suma*(1-r.f);
   $('stack').innerHTML = `<div style="width:${r.T*r.f}%;background:var(--blue)"></div><div style="width:${r.I*r.f}%;background:#7A4FA0"></div><div style="width:${r.Pr*r.f}%;background:var(--ochre)"></div><div style="width:${lost}%;background:repeating-linear-gradient(45deg,var(--surface2),var(--surface2) 4px,var(--line) 4px,var(--line) 8px)"></div>`;
   const rows = [['blk','Terreno'],['TF',t.TF,r.ph.TF,0],['PR',t.PR,0,r.pp.PR],['VE',t.VE,r.ph.VE,r.pp.VE],
     ['blk','Interesado'],['TP',t.TP,r.ph.TP,r.pp.TP],['VPI',t.VPI,r.ph.VPI,r.pp.VPI]].concat(isOI?[['GP',t.GP,r.ph.GP,r.pp.GP]]:[['VPS',t.VPS,r.ph.VPS,r.pp.VPS]]).concat(
-    [['blk','Proyecto'],['PM',t.PM,r.ph.PM,0],['MO',t.MO,r.ph.MO,r.pp.MO],['BQ',t.BQD,r.ph.BQ,r.pp.BQ],['VASOB',t.VASOB,r.ph.VASOB,r.pp.VASOB],['VMBS',t.VMBS,r.ph.VMBS,r.pp.VMBS],['VFCI',t.VFCI,r.ph.VFCI,r.pp.VFCI]]);
+    [['blk','Proyecto'],['PM',t.PM,r.ph.PM,0],['MO',t.MO,r.ph.MO,r.pp.MO],['BQ',null,r.ph.BQ,r.pp.BQ],['VASOB',t.VASOB,r.ph.VASOB,r.pp.VASOB],['VMBS',t.VMBS,r.ph.VMBS,r.pp.VMBS],['VFCI',t.VFCI,r.ph.VFCI,r.pp.VFCI]]);
   let h='';
   for (const x of rows){
     if (x[0]==='blk'){ h+=`<tr class="blk"><td colspan="5">${x[1]}</td></tr>`; continue; }
     const [k,tr,a,b]=x, d=b-a, cls=d>0.005?'up':d<-0.005?'down':'';
     let note=''; if (k==='PM') note=' <span class="note">(pasa al factor)</span>'; if (k==='TF') note=' <span class="note">(pasa a PR)</span>';
-    h+=`<tr><td>${LAB[k]}${note}</td><td class="num">${fmt(tr,0)}</td><td class="num">${fmt(a,2)}</td><td class="num">${fmt(b,2)}</td><td class="num ${cls}">${d>0?'+':''}${fmt(d,2)}</td></tr>`;
+    const trc = k==='BQ' ? (t.BQ===t.BQD ? fmt(t.BQ,0) : `${fmt(t.BQ,0)} · ${fmt(t.BQD,0)}`) : fmt(tr,0);
+    h+=`<tr><td>${LAB[k]}${note}</td><td class="num">${trc}</td><td class="num">${fmt(a,2)}</td><td class="num">${fmt(b,2)}</td><td class="num ${cls}">${d>0?'+':''}${fmt(d,2)}</td></tr>`;
   }
   h+=`<tr class="tot"><td>Suma de bloques</td><td></td><td class="num">${fmt(r.vig,2)}</td><td class="num">${fmt(r.suma,2)}</td><td></td></tr>`;
   h+=`<tr><td>× Factor del plan (${cur.plan.toLowerCase()})</td><td></td><td class="num">1,00</td><td class="num">${fmt(r.f,2)}</td><td></td></tr>`;
@@ -340,14 +439,16 @@ function update(){
   $('detalle').querySelector('tbody').innerHTML=h;
   drawLista();
 }
-function drawLista(){
+function ranks(){
   const res = lista.map(c=>({c,r:calc(c)}));
   const rank=(i,key,same)=>1+res.filter((o,j)=>j!==i && same(o.c,res[i].c) && o.r[key]>res[i].r[key]+1e-9).length;
+  return res.map((o,i)=>({...o, lv:rank(i,'vig',(a,b)=>a.conc===b.conc), lr:rank(i,'p27',(a,b)=>a.conc===b.conc&&a.region===b.region), lc:rank(i,'comun',(a,b)=>a.conc===b.conc)}));
+}
+function drawLista(){
   let h='';
-  res.forEach((o,i)=>{
-    const lv=rank(i,'vig',(a,b)=>a.conc===b.conc), lr=rank(i,'p27',(a,b)=>a.conc===b.conc&&a.region===b.region), lc=rank(i,'comun',(a,b)=>a.conc===b.conc);
+  ranks().forEach((o,i)=>{
     const R = n=>`<span class="rank${n===1?' first':''}">${n}°</span>`;
-    h+=`<tr data-i="${i}" class="${i===sel?'on':''}"><td class="sel">${o.c.nombre||'(sin nombre)'}</td><td>${o.c.region||'—'}</td><td>${o.c.conc}</td><td>${o.c.plan}</td><td class="num">${fmt(o.r.vig)}</td><td>${R(lv)}</td><td class="num"><b>${fmt(o.r.p27)}</b></td><td>${R(lr)}</td><td class="num">${fmt(o.r.comun)}</td><td>${R(lc)}</td></tr>`;
+    h+=`<tr data-i="${i}" class="${i===sel?'on':''}"><td class="sel">${esc(o.c.nombre||'(sin nombre)')}</td><td>${esc(o.c.region||'—')}</td><td>${o.c.conc}</td><td>${esc(o.c.plan)}</td><td class="num">${fmt(o.r.vig)}</td><td>${R(o.lv)}</td><td class="num"><b>${fmt(o.r.p27)}</b></td><td>${R(o.lr)}</td><td class="num">${fmt(o.r.comun)}</td><td>${R(o.lc)}</td></tr>`;
   });
   const tb=$('lista').querySelector('tbody'); tb.innerHTML=h;
   tb.querySelectorAll('tr').forEach(tr=>tr.addEventListener('click',()=>{sel=+tr.dataset.i; load(lista[sel]); msg('Editando «'+(lista[sel].nombre||'proyecto')+'». Usa «Guardar» para actualizarlo.');}));
@@ -358,8 +459,22 @@ $('guardar').addEventListener('click',()=>{
   else { lista.push(JSON.parse(JSON.stringify(cur))); sel=lista.length-1; msg('Proyecto agregado a la comparación.'); }
   save(); drawLista();
 });
-$('nuevo').addEventListener('click',()=>{ sel=-1; load({nombre:'Proyecto '+(lista.length+1),region:cur.region||'Región X',conc:cur.conc,plan:'Sin plan',TF:50,rod:[[10,'Media']],VE:50,TPha:cur.conc==='OI'?100:10,zona:cur.conc==='OI'?'general':'centro',VPI:'0',GP:'50',predios:1,jornadas:300,quemado:'No',urgencia:'No',vasob:'No',utm:50,aporte:0}); msg('Proyecto nuevo: completa los datos y guárdalo.'); drawLista(); });
+$('nuevo').addEventListener('click',()=>{ sel=-1; load({nombre:'Proyecto '+(lista.length+1),region:cur.region||'Región X',conc:cur.conc,plan:'Sin plan',lit:cur.lit||'c',rod:[rd(10,'','Media')],VE:50,TPha:cur.conc==='OI'?100:10,zona:cur.conc==='OI'?'general':'centro',VPI:'0',GP:'50',col:'Individual',pred:[],jornadas:300,quemado:'No',urgencia:'No',vasob:'No',utm:50,aporte:0}); msg('Proyecto nuevo: completa los datos y guárdalo.'); drawLista(); });
 $('borrar').addEventListener('click',()=>{ if (sel<0||sel>=lista.length){ msg('Elige primero un proyecto de la lista.'); return; } const n=lista[sel].nombre; lista.splice(sel,1); if(!lista.length) lista=JSON.parse(JSON.stringify(EJ)); sel=0; save(); load(lista[0]); msg('«'+n+'» se quitó de la comparación.'); });
+
+// ---------- exportar (capacidad «downloads»)
+function csv(){
+  const q = v => { const t=String(v??''); return /[";\n]/.test(t) ? '"'+t.replace(/"/g,'""')+'"' : t; };
+  const n = v => (v===null||v===undefined||isNaN(v)) ? '' : (Math.round(v*100)/100).toString().replace('.',',');
+  const head=['Proyecto','Región','Concurso','Plan','Literal','Tramo TF nacional','Tramo PR','Puntaje vigente','Lugar vigente','Puntaje 2027','Lugar en región','Puntaje común','Lugar fondo común'];
+  const lines=[head.join(';')];
+  ranks().forEach(o=>lines.push([q(o.c.nombre),q(o.c.region),o.c.conc,q(o.c.plan),o.c.lit,n(o.r.t.TF),n(o.r.t.PR),n(o.r.vig),o.lv,n(o.r.p27),o.lr,n(o.r.comun),o.lc].join(';')));
+  lines.push(''); lines.push(q(sameP() ? 'Pesos 2027 tentativos de la propuesta.' : 'Simulación: pesos distintos de la propuesta 2027.'));
+  return '﻿'+lines.join('\r\n');
+}
+(async()=>{ try{ const dl = await claude.use('downloads'); if(!dl) return; const b=$('csv'); b.hidden=false;
+  b.addEventListener('click', async()=>{ try{ await dl.save({filename:'Comparacion_polinomio_FCBN_2027.csv', data:csv()}); msg('Lista descargada.'); } catch(e){ if(e && e.code==='declined') return; if(e && (e.code==='unavailable'||e.code==='not_granted')) b.hidden=true; msg('No se pudo descargar la lista.'); } });
+} catch(e){} })();
 
 // ---------- parámetros
 const GRUPOS = [['Puntaje',['VT','VI','VP','VPS']],['VT (terreno)',['PR','VE']],['VI (interesado)',['TP','VPI','GP']],['VP (proyecto)',['VBSU','VASOB','VMBS','VFCI']],['VBSU',['MO','BQ']]];
@@ -372,15 +487,16 @@ function drawParams(){
       h+=`<div class="note" id="chk-${conc}-${g.split(' ')[0]}"></div></div>`;
     }
     h+=`<div class="box"><h4>${conc} · factor del plan</h4>`;
-    for (const e of ['Ingresado','Sin plan']) h+=`<div class="row"><label for="f-${conc}-${e}">${e}</label><input type="number" step="0.05" min="0" max="1" id="f-${conc}-${e.replace(' ','')}" data-c="${conc}" data-f="${e}" value="${P[conc].fpm[e]}"></div>`;
+    for (const e of ['Ingresado','Sin plan']) h+=`<div class="row"><label for="f-${conc}-${e.replace(' ','')}">${e}</label><input type="number" step="0.05" min="0" max="1" id="f-${conc}-${e.replace(' ','')}" data-c="${conc}" data-f="${e}" value="${P[conc].fpm[e]}"></div>`;
     h+=`</div>`;
   }
   $('params').innerHTML=h;
-  $('params').querySelectorAll('input').forEach(inp=>inp.addEventListener('input',e=>{
+  $('params').querySelectorAll('input').forEach(inp=>{ inp.disabled = !simMode; inp.addEventListener('input',e=>{
     const v=+e.target.value; if (isNaN(v)) return;
     if (e.target.dataset.f) P[e.target.dataset.c].fpm[e.target.dataset.f]=v; else P[e.target.dataset.c].p[e.target.dataset.k]=v;
     checks(); save(); update();
-  }));
+  });});
+  $('simParams').textContent = simMode ? 'Bloquear pesos' : 'Simular otros pesos';
   checks();
 }
 function checks(){
@@ -389,7 +505,8 @@ function checks(){
     if (el) el.innerHTML = Math.abs(s-1)<1e-6 ? `<span class="ok">Suma 1,00</span>` : `<span class="bad">Suma ${fmt(s,2)}: debe dar 1,00</span>`;
   }
 }
-$('resetParams').addEventListener('click',()=>{ P=JSON.parse(JSON.stringify(BASE)); save(); drawParams(); update(); });
+$('simParams').addEventListener('click',()=>{ simMode=!simMode; drawParams(); });
+$('resetParams').addEventListener('click',()=>{ P=JSON.parse(JSON.stringify(BASE)); simMode=false; save(); drawParams(); update(); });
 
 drawParams();
 load(lista[0]);
